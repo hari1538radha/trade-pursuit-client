@@ -1,4 +1,5 @@
 import firmsCatalog from '@shared/firms.json';
+import { fetchNewsDirect, lastNews } from './news.js';
 
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
 const TOKEN_KEY = 'edgelog.token';
@@ -13,7 +14,7 @@ async function req(method, path, body) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const e = new Error(data.error || `Request failed (${res.status})`);
+    const e = new Error(data.error ? `${data.error}${data.details?.reason ? ` (${data.details.reason})` : ''}` : `Request failed (${res.status})`);
     e.status = res.status;
     throw e;
   }
@@ -62,7 +63,19 @@ export const httpApi = {
     accept: (id) => req('POST', `/friends/${id}/accept`),
     remove: (id) => req('DELETE', `/friends/${id}`),
   },
-  news: (week = 'thisweek') => req('GET', `/news${qs({ week })}`),
+  // Server first (shared cache); if it can't reach the feed, try from the browser, then the last copy we saw.
+  async news(week = 'thisweek') {
+    try {
+      const out = await req('GET', `/news${qs({ week })}`);
+      try { localStorage.setItem(`tp.news.${week}`, JSON.stringify(out)); } catch { /* storage full */ }
+      return out;
+    } catch (serverErr) {
+      try { return await fetchNewsDirect(week); } catch { /* fall through */ }
+      const last = lastNews(week);
+      if (last) return last;
+      throw serverErr;
+    }
+  },
   posts: {
     list: (p) => req('GET', `/posts${qs(p)}`),
     create: (b) => req('POST', '/posts', b),

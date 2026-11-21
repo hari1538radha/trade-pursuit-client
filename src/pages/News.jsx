@@ -98,6 +98,12 @@ export default function News() {
           <span className="tag red" style={{ fontSize: 15, fontWeight: 700 }}><Clock size={14} /> {until(new Date(nextHigh.date).getTime() - now)}</span>
         </Reveal>
       )}
+      {data?.stale && (
+        <div className="banner" style={{ marginTop: 14, borderColor: 'var(--gold)' }}>
+          <AlertTriangle size={18} style={{ color: 'var(--gold)' }} />
+          <span className="muted">The calendar feed isn't answering right now, so this is the last copy loaded{data.updatedAt ? ` (${new Date(data.updatedAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })})` : ''}. It refreshes automatically.</span>
+        </div>
+      )}
       {data?.sample && (
         <div className="banner" style={{ marginTop: 14, borderColor: 'var(--gold)' }}>
           <AlertTriangle size={18} style={{ color: 'var(--gold)' }} />
