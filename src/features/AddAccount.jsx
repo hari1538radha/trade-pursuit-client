@@ -36,16 +36,16 @@ export default function AddAccount({ open, onClose, firmId }) {
               <button className="close-x" onClick={onClose}><X size={18} /></button>
             </div>
             <div className="grid" style={{ gridTemplateColumns: '220px 1fr', gap: 18 }}>
-              <div className="card" style={{ background: '#0b0b0d', display: 'flex', flexDirection: 'column' }}>
-                {['Firm', 'Plan', 'Log', 'Done'].map((s, i) => <div key={s} className="row" style={{ gap: 10, padding: '10px 0', color: i === 0 ? '#fff' : 'var(--muted)' }}><span style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${i === 0 ? '#fff' : '#444'}` }} />{s}</div>)}
+              <div className="card" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+                {['Firm', 'Plan', 'Log', 'Done'].map((s, i) => <div key={s} className="row" style={{ gap: 10, padding: '10px 0', color: i === 0 ? 'var(--text)' : 'var(--muted)' }}><span style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${i === 0 ? '#fff' : '#444'}` }} />{s}</div>)}
                 <p className="dim" style={{ marginTop: 'auto', fontSize: 12.5, lineHeight: 1.5 }}>{FIRM_NOTE}</p>
               </div>
-              <div className="card" style={{ background: '#18181b' }}>
+              <div className="card" style={{ background: 'var(--panel2)' }}>
                 <div className="row between" style={{ marginBottom: 14 }}>
                   <b>Choose a firm</b>
                   <Seg options={['CFD', 'Futures']} value={type} onChange={(t) => { setType(t); setSel(null); }} />
                 </div>
-                <div className="row" style={{ background: '#222226', borderRadius: 12, padding: '0 14px', marginBottom: 16 }}>
+                <div className="row" style={{ background: 'var(--panel3)', borderRadius: 12, padding: '0 14px', marginBottom: 16 }}>
                   <Search size={16} className="muted" />
                   <input className="input" style={{ background: 'none' }} placeholder="Search firms" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
                 </div>
@@ -58,13 +58,13 @@ export default function AddAccount({ open, onClose, firmId }) {
                       <span className="muted" style={{ fontSize: 13 }}>{f.programs.reduce((n, p) => n + p.variants.reduce((m, v) => m + v.sizes.length, 0), 0)} plans · ${kfmt(Math.min(...f.programs.flatMap((p) => p.variants.flatMap((v) => v.sizes.map((s) => s.size))))) } to ${kfmt(Math.max(...f.programs.flatMap((p) => p.variants.flatMap((v) => v.sizes.map((s) => s.size)))))}</span>
                     </motion.button>
                   ))}
-                  <button className="firm-card" style={{ background: '#1d1d22', borderStyle: 'dashed', minHeight: 150 }} onClick={() => setCustom(true)}>
+                  <button className="firm-card blank" style={{ minHeight: 150 }} onClick={() => setCustom(true)}>
                     <div className="firm-logo"><Plus size={20} /></div><b style={{ fontSize: 19 }}>Other firm / personal</b><span className="muted" style={{ fontSize: 13 }}>Enter your own rules</span>
                   </button>
                 </motion.div>
                 <AnimatePresence>
                   {sel && (
-                    <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} className="row between" style={{ marginTop: 14, padding: 12, borderRadius: 18, background: `linear-gradient(90deg, ${sel.color}, #141418)` }}>
+                    <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} className="row between" style={{ marginTop: 14, padding: 12, borderRadius: 18, background: `linear-gradient(90deg, ${sel.color}, var(--panel2))` }}>
                       <button className="btn" onClick={() => setSel(null)}>Pick another</button>
                       <div style={{ textAlign: 'center' }}><b style={{ fontSize: 20 }}>{sel.name}</b></div>
                       <button className="btn primary" onClick={() => setFirm(sel)}>Continue <ArrowRight size={16} /></button>
@@ -108,7 +108,7 @@ function PlanPicker({ firm, onBack, onClose }) {
       </div>
       <div className="row" style={{ justifyContent: 'center', gap: 10, marginTop: 18 }}>
         {firm.programs.map((p) => (
-          <motion.button whileTap={{ scale: 0.96 }} key={p.id} onClick={() => setProg(p.id)} style={{ padding: '10px 22px', borderRadius: 18, border: '1px solid', borderColor: p.id === progId ? '#3c4cc0' : '#26262c', background: p.id === progId ? 'linear-gradient(180deg,#1e2a78,#141a44)' : '#151518', textAlign: 'center' }}>
+          <motion.button whileTap={{ scale: 0.96 }} key={p.id} onClick={() => setProg(p.id)} style={{ padding: '10px 22px', borderRadius: 18, border: '1px solid', borderColor: p.id === progId ? 'var(--blue)' : 'var(--line2)', background: p.id === progId ? 'linear-gradient(180deg,#1e2a78,#141a44)' : '#151518', textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 600 }}>{p.name}</div><div className="muted" style={{ fontSize: 13 }}>{p.tagline}</div>
           </motion.button>
         ))}
@@ -155,10 +155,10 @@ function PlanPicker({ firm, onBack, onClose }) {
               </div>
               <div className="row" style={{ marginTop: 14, gap: 8 }}>
                 {phases.length > 1 && <button className="btn sm" style={{ flexDirection: 'column', gap: 2, flex: 'none', padding: '6px 9px' }} onClick={() => setPhaseBySize((x) => ({ ...x, [s.size]: phase === 'Funded' ? phases[0] : 'Funded' }))}><RotateCcw size={14} />{phase === 'Funded' ? 'Eval details' : 'Funded details'}</button>}
-                <div className="row grow" style={{ background: '#1a1a1e', borderRadius: 12, padding: 4, minWidth: 0, gap: 2 }}>
-                  <button className="btn ghost grow" style={{ color: '#fff', padding: '10px 6px' }} onClick={() => setLogging({ size: s, phase: phase === 'Funded' ? phases[0] : phase, kind: 'eval' })}>Log eval</button>
+                <div className="row grow" style={{ background: 'var(--panel2)', borderRadius: 12, padding: 4, minWidth: 0, gap: 2 }}>
+                  <button className="btn ghost grow" style={{ color: 'var(--text)', padding: '10px 6px' }} onClick={() => setLogging({ size: s, phase: phase === 'Funded' ? phases[0] : phase, kind: 'eval' })}>Log eval</button>
                   <span className="dim">or</span>
-                  <button className="btn ghost grow" style={{ color: '#fff', padding: '10px 6px' }} onClick={() => setLogging({ size: s, phase: 'Funded', kind: 'funded' })}>Log funded</button>
+                  <button className="btn ghost grow" style={{ color: 'var(--text)', padding: '10px 6px' }} onClick={() => setLogging({ size: s, phase: 'Funded', kind: 'funded' })}>Log funded</button>
                 </div>
               </div>
             </motion.div>
@@ -191,7 +191,7 @@ function LogEvalPopover({ firm, prog, variant, size, phase, kind, onClose, onSav
   });
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', inset: -26, background: '#000a', borderRadius: 26, display: 'grid', placeItems: 'center', zIndex: 5 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <motion.div initial={{ y: 40, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="dialog" style={{ background: 'linear-gradient(180deg,#1a2160,#141418 45%)', borderColor: '#2d3580', width: 460 }}>
+      <motion.div initial={{ y: 40, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="dialog" style={{ background: 'linear-gradient(180deg,var(--blue-soft),transparent 45%), var(--panel)', borderColor: 'var(--blue)', width: 460 }}>
         <div className="row between"><span className="eyebrow">{kind === 'funded' ? 'Log funded' : 'Log evaluations'}</span><button className="close-x" onClick={onClose}><X size={16} /></button></div>
         <h3 style={{ fontSize: 26, margin: '6px 0 18px', letterSpacing: '-.02em' }}>{firm.name} {prog.name} {kfmt(size.size)}</h3>
         <div className="col" style={{ gap: 16 }}>

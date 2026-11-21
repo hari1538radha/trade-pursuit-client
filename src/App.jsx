@@ -11,6 +11,8 @@ import Analytics from './pages/Analytics.jsx';
 import Propfirm from './pages/Propfirm.jsx';
 import Strategy from './pages/Strategy.jsx';
 import Community from './pages/Community.jsx';
+import PreMarket from './pages/PreMarket.jsx';
+import News from './pages/News.jsx';
 
 // In-memory routing in the static preview, clean URLs when served by the API server.
 const Router = import.meta.env.VITE_DEMO === 'true' ? MemoryRouter : BrowserRouter;
@@ -37,6 +39,8 @@ export default function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="propfirm" element={<Propfirm />} />
           <Route path="strategy" element={<Strategy />} />
+          <Route path="premarket" element={<PreMarket />} />
+          <Route path="news" element={<News />} />
           <Route path="community" element={<Community />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

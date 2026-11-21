@@ -6,6 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { useApp } from '../store/AppContext.jsx';
 import { Money, CountUp, Reveal, ChartTip, Field } from '../components/ui.jsx';
 import Calendar from '../components/Calendar.jsx';
+import ExecutionStats from '../components/ExecutionStats.jsx';
 import { summary, cumulative, real } from '../lib/stats.js';
 import { longDate, today, weekStart, dayMonth, addDays } from '../lib/dates.js';
 import { money } from '../lib/format.js';
@@ -38,7 +39,7 @@ export default function Dashboard() {
 
       <div style={{ textAlign: 'center', margin: '40px 0 50px' }}>
         <div className="eyebrow">Total P&amp;L</div>
-        <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} style={{ fontSize: 'clamp(60px,9vw,120px)', fontWeight: 800, letterSpacing: '-.05em', textShadow: '0 0 60px #ffffff22' }}>
+        <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} style={{ fontSize: 'clamp(60px,9vw,120px)', fontWeight: 800, letterSpacing: '-.05em', textShadow: '0 0 60px var(--glow)' }}>
           {hidePnl ? '$•••' : <CountUp value={s.total} format={(n) => money(n, { cents: false })} />}
         </motion.div>
         <div className="row" style={{ justifyContent: 'center', gap: 18, fontSize: 16 }}>
@@ -68,12 +69,12 @@ export default function Dashboard() {
             {cum.length ? (
               <ResponsiveContainer>
                 <AreaChart data={cum.map((d) => ({ ...d, label: dayMonth(d.date) }))}>
-                  <defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#4ade80" stopOpacity=".35" /><stop offset="1" stopColor="#4ade80" stopOpacity="0" /></linearGradient></defs>
+                  <defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="var(--blue)" stopOpacity=".35" /><stop offset="1" stopColor="var(--blue)" stopOpacity="0" /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 4" vertical={false} />
                   <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={30} />
                   <YAxis tickLine={false} axisLine={false} width={60} tickFormatter={(v) => (hidePnl ? '•' : `$${v}`)} />
                   <Tooltip content={<ChartTip />} />
-                  <Area type="monotone" dataKey="cum" name="Cumulative" stroke="#4ade80" strokeWidth={2.5} fill="url(#cg)" animationDuration={1200} />
+                  <Area type="monotone" dataKey="cum" name="Cumulative" stroke="var(--blue)" strokeWidth={2.5} fill="url(#cg)" animationDuration={1200} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : <div className="empty">No trades yet</div>}
@@ -83,10 +84,12 @@ export default function Dashboard() {
           <div className="row between"><span className="eyebrow">This week</span><span className="dim">{dayMonth(ws)} to today</span></div>
           <div style={{ fontSize: 44, fontWeight: 700, margin: '16px 0', letterSpacing: '-.03em' }}><Money value={week.total} cents={false} animated /></div>
           {[['Trades', week.count], ['Win rate', `${week.winRate.toFixed(0)}%`], ['Best trade', <Money key="b" value={week.best} cents={false} />], ['Worst trade', <Money key="w" value={week.worst} cents={false} />]].map(([k, v]) => (
-            <div key={k} className="row between" style={{ padding: '9px 0', borderBottom: '1px solid #222' }}><span className="muted">{k}</span><b>{v}</b></div>
+            <div key={k} className="row between" style={{ padding: '9px 0', borderBottom: '1px solid var(--line)' }}><span className="muted">{k}</span><b>{v}</b></div>
           ))}
         </Reveal>
       </div>
+
+      {s.count > 0 && <ExecutionStats trades={trades} be={breakEven} />}
 
       <Goals user={user} updateUser={updateUser} notify={notify} />
 
@@ -103,9 +106,9 @@ function Ring({ value }) {
   const r = 52, c = 2 * Math.PI * r;
   return (
     <svg width="130" height="130" viewBox="0 0 130 130" style={{ flex: 'none' }}>
-      <circle cx="65" cy="65" r={r} stroke="#2a2a30" strokeWidth="10" fill="none" />
-      <motion.circle cx="65" cy="65" r={r} stroke="#fff" strokeWidth="10" fill="none" strokeLinecap="round" transform="rotate(-90 65 65)" strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - value / 100) }} transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }} />
-      <text x="65" y="72" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="700">{value.toFixed(1)}%</text>
+      <circle cx="65" cy="65" r={r} stroke="var(--panel3)" strokeWidth="10" fill="none" />
+      <motion.circle cx="65" cy="65" r={r} stroke="var(--blue)" strokeWidth="10" fill="none" strokeLinecap="round" transform="rotate(-90 65 65)" strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - value / 100) }} transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }} />
+      <text x="65" y="72" textAnchor="middle" fill="var(--text)" fontSize="22" fontWeight="700">{value.toFixed(1)}%</text>
     </svg>
   );
 }
@@ -120,7 +123,7 @@ function Goals({ user, updateUser, notify }) {
       {!edit && !has && <><p className="muted" style={{ maxWidth: 620, fontSize: 16, lineHeight: 1.5 }}>Set a goal for this week, this month, this year and your life, and the reason behind it.</p><button className="btn" onClick={() => setEdit(true)}>Set your goals</button></>}
       {!edit && has && (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', marginTop: 18 }}>
-          {['week', 'month', 'year', 'life', 'why'].filter((k) => user.goals[k]).map((k) => <div key={k} className="card" style={{ background: '#1a1a1e' }}><div className="eyebrow">{k === 'why' ? 'My why' : `This ${k}`}</div><p style={{ marginBottom: 0, lineHeight: 1.5 }}>{user.goals[k]}</p></div>)}
+          {['week', 'month', 'year', 'life', 'why'].filter((k) => user.goals[k]).map((k) => <div key={k} className="card" style={{ background: 'var(--panel2)' }}><div className="eyebrow">{k === 'why' ? 'My why' : `This ${k}`}</div><p style={{ marginBottom: 0, lineHeight: 1.5 }}>{user.goals[k]}</p></div>)}
           <button className="btn ghost" onClick={() => setEdit(true)}>Edit goals</button>
         </div>
       )}

@@ -56,7 +56,7 @@ export default function Community() {
         <div className="card">
           <h3 style={{ fontSize: 22 }}>Trade with friends</h3>
           <p className="muted" style={{ lineHeight: 1.5 }}>Share this site with friends. Each person gets their own private journal; only what you post here is public.</p>
-          <p className="muted" style={{ fontSize: 13 }}>Your handle: <b style={{ color: '#fff' }}>@{user.username}</b></p>
+          <p className="muted" style={{ fontSize: 13 }}>Your handle: <b style={{ color: 'var(--text)' }}>@{user.username}</b></p>
         </div>
         <div className="card" style={{ marginTop: 14 }}>
           <h3>Trending tags</h3>
@@ -80,7 +80,7 @@ function Post({ p, onLike, onDelete, onTag }) {
         <div className="grow" style={{ minWidth: 0 }}>
           <div className="row" style={{ gap: 6 }}><b>{p.author?.displayName}</b><span className="muted">@{p.author?.username} · {relTime(p.createdAt)}</span></div>
           <p style={{ fontSize: 16, lineHeight: 1.5, margin: '6px 0', whiteSpace: 'pre-wrap' }}>
-            {parts.map((x, i) => (/^[#$]/.test(x) ? <button key={i} style={{ color: '#7c9cff' }} onClick={() => onTag(x.toLowerCase())}>{x}</button> : x))}
+            {parts.map((x, i) => (/^[#$]/.test(x) ? <button key={i} style={{ color: 'var(--blue)' }} onClick={() => onTag(x.toLowerCase())}>{x}</button> : x))}
           </p>
           {t?.kind === 'week' && (
             <div className="weekcard">

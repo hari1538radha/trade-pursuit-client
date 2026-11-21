@@ -17,6 +17,7 @@ const DEFAULT_TAGS = {
 
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; } };
 let db = load() || { users: [], trades: [], accounts: [], plans: [], posts: [] };
+db.friends ||= [];
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { throw fail(413, 'Browser storage is full — remove some screenshots'); } };
 const id = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join('');
 const fail = (status, msg) => Object.assign(new Error(msg), { status });
@@ -24,6 +25,22 @@ const wait = (v) => new Promise((r) => setTimeout(() => r(structuredClone(v)), 6
 const hash = async (s) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))), (b) => b.toString(16).padStart(2, '0')).join('');
 const me = () => { const u = db.users.find((u) => u.id === getToken()); if (!u) throw fail(401, 'Not signed in'); return u; };
 const pub = ({ pw, ...u }) => u;
+const who = (uid) => { const u = db.users.find((x) => x.id === uid); return u ? { id: u.id, username: u.username, displayName: u.displayName } : null; };
+const friendIds = (uid) => db.friends.filter((f) => f.status === 'accepted' && (f.from === uid || f.to === uid)).map((f) => (f.from === uid ? f.to : f.from));
+
+// Recurring macro releases, used only when the live feed can't be reached from the preview.
+function sampleNews(week) {
+  const mon = parseYmd(addDays(ymd(), -((new Date().getDay() + 6) % 7) + (week === 'nextweek' ? 7 : 0)));
+  const at = (d, h, m) => { const x = new Date(Date.UTC(mon.getFullYear(), mon.getMonth(), mon.getDate() + d, h, m)); return x.toISOString(); };
+  const rows = [
+    [0, 1, 30, 'AUD', 'medium', 'Retail Sales m/m', '0.3%', '0.2%'], [0, 15, 0, 'USD', 'low', 'Fed Governor Speaks', '', ''],
+    [1, 7, 0, 'GBP', 'high', 'CPI y/y', '3.4%', '3.6%'], [1, 13, 30, 'USD', 'high', 'Core CPI m/m', '0.3%', '0.3%'], [1, 13, 30, 'USD', 'high', 'CPI y/y', '2.9%', '3.0%'],
+    [2, 9, 0, 'EUR', 'medium', 'German ZEW Economic Sentiment', '12.5', '9.8'], [2, 15, 30, 'USD', 'medium', 'Crude Oil Inventories', '-1.2M', '2.1M'], [2, 19, 0, 'USD', 'high', 'FOMC Meeting Minutes', '', ''],
+    [3, 13, 30, 'USD', 'high', 'Unemployment Claims', '221K', '218K'], [3, 13, 30, 'USD', 'medium', 'Philly Fed Manufacturing Index', '-2.5', '-5.6'], [3, 23, 50, 'JPY', 'low', 'Trade Balance', '-0.31T', '-0.47T'],
+    [4, 8, 30, 'EUR', 'medium', 'Flash Manufacturing PMI', '46.0', '45.9'], [4, 13, 30, 'CAD', 'high', 'Retail Sales m/m', '0.4%', '-0.1%'], [4, 15, 0, 'USD', 'medium', 'Revised UoM Consumer Sentiment', '51.5', '51.0'],
+  ];
+  return rows.map(([d, h, m, currency, impact, title, forecast, previous]) => ({ id: `${currency}-${d}-${title}`, title, currency, date: at(d, h, m), impact, forecast, previous, actual: '' }));
+}
 const now = () => new Date().toISOString();
 
 function newUser(username, pw, displayName) {
@@ -70,6 +87,7 @@ export const demoApi = {
       const u = me();
       if (u.pw !== (await hash(password))) throw fail(401, 'Password is wrong');
       for (const k of ['trades', 'accounts', 'plans', 'posts']) db[k] = db[k].filter((x) => x.user !== u.id);
+      db.friends = db.friends.filter((f) => f.from !== u.id && f.to !== u.id);
       db.users = db.users.filter((x) => x.id !== u.id); save(); return wait({ ok: true });
     },
   },
@@ -123,9 +141,73 @@ export const demoApi = {
     async put(date, b) {
       const uid = me().id;
       let p = db.plans.find((x) => x.user === uid && x.date === date);
-      if (!p) { p = { id: id(), user: uid, date, bias: '', keyLevels: '', ruleReminder: '', avoid: '', checks: [] }; db.plans.push(p); }
+      if (!p) { p = { id: id(), user: uid, date, bias: '', keyLevels: '', ruleReminder: '', avoid: '', checks: [], instruments: [], sessionFocus: '', narrative: '', bullCase: '', bearCase: '', newsToWatch: '', images: [], sharedWith: [] }; db.plans.push(p); }
       Object.assign(p, b); save(); return wait({ plan: p });
     },
+    async list({ from, to } = {}) {
+      const uid = me().id;
+      const plans = db.plans.filter((p) => p.user === uid && (!from || p.date >= from) && (!to || p.date <= to)).sort((a, b) => b.date.localeCompare(a.date));
+      return wait({ plans: plans.map(({ images, checks, ...p }) => ({ ...p, imageCount: (images || []).length })) });
+    },
+    async share(date, userIds) {
+      const uid = me().id; const fr = friendIds(uid);
+      if (userIds.some((u) => !fr.includes(u))) throw fail(403, 'You can only share with friends');
+      await this.put(date, {});
+      const p = db.plans.find((x) => x.user === uid && x.date === date);
+      p.sharedWith = [...new Set(userIds)]; save(); return wait({ plan: p });
+    },
+    async shared(date) {
+      const uid = me().id; const fr = friendIds(uid);
+      const plans = db.plans.filter((p) => p.date === date && (p.sharedWith || []).includes(uid) && fr.includes(p.user)).map(({ sharedWith, checks, user, ...p }) => ({ ...p, author: who(user) }));
+      return wait({ plans });
+    },
+  },
+  friends: {
+    async list() {
+      const uid = me().id; const out = { friends: [], incoming: [], outgoing: [] };
+      for (const f of db.friends.filter((f) => f.from === uid || f.to === uid)) {
+        const other = who(f.from === uid ? f.to : f.from); if (!other) continue;
+        const row = { id: f.id, user: other, createdAt: f.createdAt };
+        if (f.status === 'accepted') out.friends.push(row); else (f.from === uid ? out.outgoing : out.incoming).push(row);
+      }
+      return wait(out);
+    },
+    async request(username) {
+      const uid = me().id;
+      const o = db.users.find((u) => u.username === String(username).trim().toLowerCase().replace(/^@/, ''));
+      if (!o) throw fail(404, 'No trader with that username');
+      if (o.id === uid) throw fail(400, "You can't add yourself");
+      const rev = db.friends.find((f) => f.from === o.id && f.to === uid);
+      if (rev) { rev.status = 'accepted'; save(); return wait({ status: 'accepted', id: rev.id, user: who(o.id) }); }
+      const ex = db.friends.find((f) => f.from === uid && f.to === o.id);
+      if (ex) return wait({ status: ex.status, id: ex.id, user: who(o.id) });
+      const f = { id: id(), from: uid, to: o.id, status: 'pending', createdAt: now() };
+      db.friends.push(f); save(); return wait({ status: 'pending', id: f.id, user: who(o.id) });
+    },
+    async accept(fid) {
+      const f = db.friends.find((x) => x.id === fid && x.to === me().id && x.status === 'pending');
+      if (!f) throw fail(404, 'Request not found');
+      f.status = 'accepted'; save(); return wait({ ok: true });
+    },
+    async remove(fid) {
+      const uid = me().id; const f = db.friends.find((x) => x.id === fid && (x.from === uid || x.to === uid));
+      if (!f) throw fail(404, 'Request not found');
+      db.friends = db.friends.filter((x) => x !== f);
+      for (const p of db.plans) if (p.user === f.from || p.user === f.to) p.sharedWith = (p.sharedWith || []).filter((u) => u !== f.from && u !== f.to);
+      save(); return wait({ ok: true });
+    },
+  },
+  /** The preview has no server: try the public feed directly, else show clearly labelled sample events. */
+  async news(week = 'thisweek') {
+    try {
+      const r = await fetch(`https://nfs.faireconomy.media/ff_calendar_${week}.json`, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) throw new Error();
+      const rows = await r.json();
+      const imp = { High: 'high', Medium: 'medium', Low: 'low', Holiday: 'holiday' };
+      return { events: rows.map((e) => ({ id: `${e.country}-${e.date}-${e.title}`, title: e.title, currency: e.country, date: new Date(e.date).toISOString(), impact: imp[e.impact] || 'none', forecast: e.forecast || '', previous: e.previous || '', actual: '' })).sort((a, b) => a.date.localeCompare(b.date)), updatedAt: now() };
+    } catch {
+      return { events: sampleNews(week), updatedAt: now(), sample: true };
+    }
   },
   posts: {
     async list() {

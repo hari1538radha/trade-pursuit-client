@@ -49,7 +49,20 @@ export const httpApi = {
     update: (id, b) => req('PUT', `/accounts/${id}`, b),
     remove: (id) => req('DELETE', `/accounts/${id}`),
   },
-  plans: { get: (d) => req('GET', `/plans/${d}`), put: (d, b) => req('PUT', `/plans/${d}`, b) },
+  plans: {
+    get: (d) => req('GET', `/plans/${d}`),
+    put: (d, b) => req('PUT', `/plans/${d}`, b),
+    list: (p) => req('GET', `/plans${qs(p)}`),
+    share: (d, userIds) => req('POST', `/plans/${d}/share`, { userIds }),
+    shared: (date) => req('GET', `/plans/shared${qs({ date })}`),
+  },
+  friends: {
+    list: () => req('GET', '/friends'),
+    request: (username) => req('POST', '/friends', { username }),
+    accept: (id) => req('POST', `/friends/${id}/accept`),
+    remove: (id) => req('DELETE', `/friends/${id}`),
+  },
+  news: (week = 'thisweek') => req('GET', `/news${qs({ week })}`),
   posts: {
     list: (p) => req('GET', `/posts${qs(p)}`),
     create: (b) => req('POST', '/posts', b),
