@@ -14,6 +14,13 @@ export function AppProvider({ children }) {
   const [modal, setModal] = useState(null); // {type, props}
   const [ask, setAsk] = useState(null); // {msg, type, resolve}
   const [hidePnl, setHidePnl] = useState(() => localStorage.getItem('edgelog.hide') === '1');
+  const [theme, setThemeState] = useState(() => localStorage.getItem('edgelog.theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#eef1f6' : '#07080d');
+  }, [theme]);
+  const setTheme = (t) => { localStorage.setItem('edgelog.theme', t); setThemeState(t); };
+  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
   const notify = useCallback((msg) => { setToast(msg); clearTimeout(window.__t); window.__t = setTimeout(() => setToast(null), 2600); }, []);
   const setMode = (m) => { localStorage.setItem('edgelog.mode', m); setModeState(m); };
@@ -75,7 +82,7 @@ export function AppProvider({ children }) {
   const trades = useMemo(() => allTrades.filter((t) => (t.mode || 'live') === mode), [allTrades, mode]);
 
   const value = {
-    api, user, booting, trades, allTrades, accounts, mode, setMode, hidePnl, toggleHide,
+    api, user, booting, theme, setTheme, toggleTheme, trades, allTrades, accounts, mode, setMode, hidePnl, toggleHide,
     signIn, signInToken, signOut, updateUser, loadData, saveTrade, deleteTrade, importTrades,
     addAccounts, updateAccount, removeAccount, notify, toast, modal,
     openModal: (type, props = {}) => setModal({ type, props }), closeModal: () => setModal(null),

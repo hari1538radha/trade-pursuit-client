@@ -38,14 +38,14 @@ export default function TradeCard({ t, i = 0 }) {
         {t.tradeType && <span className="tag"><span className="dot" />{t.tradeType}</span>}
         {t.session && t.session !== 'No session' && <span className="tag"><Clock size={12} />{t.session}</span>}
         {t.playbook && <span className="tag">{t.playbook}</span>}
-        {[...(t.confluences || []), ...(t.targets || [])].slice(0, 4).map((c) => <span key={c} className="tag" style={{ background: '#1f1f24' }}>{c}</span>)}
+        {[...(t.confluences || []), ...(t.targets || [])].slice(0, 4).map((c) => <span key={c} className="tag" style={{ background: 'var(--panel2)' }}>{c}</span>)}
       </div>
       <div className="nochart">{t.images?.[0] ? <img src={t.images[0]} alt="chart" /> : 'NO CHART'}</div>
-      {t.notes && <p style={{ color: '#c4c4cb', fontSize: 13.5, lineHeight: 1.55, margin: '0 0 12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{t.notes}</p>}
+      {t.notes && <p style={{ color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55, margin: '0 0 12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{t.notes}</p>}
       {(t.emotionsPos?.length > 0 || t.emotionsNeg?.length > 0) && (
         <div className="row wrap" style={{ gap: 6, marginBottom: 12 }}>
-          {t.emotionsPos?.map((e) => <span key={e} className="tag" style={{ color: '#86efac' }}>{e}</span>)}
-          {t.emotionsNeg?.map((e) => <span key={e} className="tag" style={{ color: '#fca5a5' }}>{e}</span>)}
+          {t.emotionsPos?.map((e) => <span key={e} className="tag green">{e}</span>)}
+          {t.emotionsNeg?.map((e) => <span key={e} className="tag red">{e}</span>)}
         </div>
       )}
       <div className="row" style={{ gap: 12, fontSize: 13 }}>

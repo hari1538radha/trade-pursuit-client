@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, BookOpen, Target, BarChart3, Building2, Users, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, BookOpen, Target, BarChart3, Building2, Users, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal, Sunrise, Newspaper, Sun, Moon, Maximize2 } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Logo, Seg, Toggle, Money, Dialog, Field, Toast, SymbolIcon, ease } from './ui.jsx';
 import { cls, initials, money, usd, kfmt } from '../lib/format.js';
@@ -11,12 +11,28 @@ import Modals from '../features/Modals.jsx';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
+  { to: '/premarket', label: 'Pre-market', icon: Sunrise },
   { to: '/journal', label: 'Journal', icon: BookOpen },
   { to: '/strategy', label: 'Strategy', icon: Target },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/propfirm', label: 'Propfirm', icon: Building2 },
+  { to: '/news', label: 'News', icon: Newspaper },
   { to: '/community', label: 'Community', icon: Users },
 ];
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useApp();
+  const light = theme === 'light';
+  return (
+    <button className="theme-btn" onClick={toggleTheme} title={light ? 'Switch to dark mode' : 'Switch to light mode'} aria-label="Toggle light and dark mode">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span key={theme} initial={{ y: -14, opacity: 0, rotate: -60 }} animate={{ y: 0, opacity: 1, rotate: 0 }} exit={{ y: 14, opacity: 0, rotate: 60 }} transition={{ duration: 0.2 }} style={{ display: 'grid' }}>
+          {light ? <Moon size={16} /> : <Sun size={16} />}
+        </motion.span>
+      </AnimatePresence>
+    </button>
+  );
+}
 
 export default function Layout() {
   const { user, mode, setMode, openModal, api } = useApp();
@@ -43,7 +59,7 @@ export default function Layout() {
       <header className="topnav">
         <Logo />
         <span className="brand">Trade Pursuit</span>
-        {api.demo && <span className="chip-top" style={{ background: '#2b1d6b', borderColor: '#4b35b5', color: '#cfc4ff' }}>Preview</span>}
+        {api.demo && <span className="chip-top preview">Preview</span>}
         <nav className="navlinks">
           {NAV.map(({ to, label, icon: I, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => cls('navlink', isActive && 'active')}>
@@ -57,6 +73,7 @@ export default function Layout() {
           ))}
         </nav>
         <button className="btn sm" onClick={() => openModal('quick')} title="Quick log (Q)"><Plus size={15} /> Quick log</button>
+        <ThemeToggle />
         <button className="icon-btn" onClick={() => openModal('settings')} title="Settings"><Settings size={18} /></button>
         <button className="row" onClick={() => openModal('settings')} style={{ gap: 10 }}>
           <span style={{ fontWeight: 600 }}>{user.displayName}</span>
@@ -129,13 +146,13 @@ function Desk({ open, toggle }) {
           </AnimatePresence>
         )}
       </div>
-      <div style={{ padding: 16, borderTop: '1px solid #141418' }}>
+      <div className="desk-foot">
         <div className="row between">
           <button className="eyebrow row" style={{ gap: 6 }} onClick={() => openModal('settings', { tab: 'Guardrails' })}>Guardrails <SlidersHorizontal size={12} /></button>
           <span className="muted mono" style={{ fontSize: 12 }}>{rulesOn}/2</span>
         </div>
         <div className="row" style={{ gap: 4, margin: '10px 0' }}>
-          {[0, 1].map((i) => <div key={i} className="bar grow"><i style={{ width: i < rulesOn ? '100%' : 0, background: g.enabled ? 'var(--green)' : '#555' }} /></div>)}
+          {[0, 1].map((i) => <div key={i} className="bar grow"><i style={{ width: i < rulesOn ? '100%' : 0, background: g.enabled ? 'var(--blue)' : 'var(--dim)' }} /></div>)}
         </div>
         <div className="row between">
           <span className="muted" style={{ fontSize: 13 }}>
@@ -158,7 +175,8 @@ function Rail({ open, toggle }) {
   const [editing, setEditing] = useState(false);
   const [openSec, setOpenSec] = useState({ plan: true, check: true, session: true, recent: true });
   const date = today();
-  useEffect(() => { api.plans.get(date).then((r) => setPlan(r.plan)).catch(() => {}); }, [api, date]);
+  const { pathname } = useLocation();
+  useEffect(() => { api.plans.get(date).then((r) => setPlan(r.plan)).catch(() => {}); }, [api, date, pathname]);
   const checklist = settings.checklist || [];
   const checks = plan?.checks || [];
   const setCheck = async (i) => {
@@ -172,7 +190,7 @@ function Rail({ open, toggle }) {
   const kept = td.every((t) => t.followedPlan !== false);
   const recent = useMemo(() => trades.filter((t) => !t.noTrade).slice(0, 6), [trades]);
   const Sec = ({ k, title, right, children }) => (
-    <div style={{ borderBottom: '1px solid #18181c', padding: '14px 0' }}>
+    <div className="rail-sec">
       <div className="row between">
         <button className="eyebrow row" style={{ gap: 6 }} onClick={() => setOpenSec((s) => ({ ...s, [k]: !s[k] }))}>
           <motion.span animate={{ rotate: openSec[k] ? 0 : -90 }}><ChevronDown size={13} /></motion.span>{title}
@@ -189,21 +207,21 @@ function Rail({ open, toggle }) {
     <aside className="rail">
       <div className="rail-inner">
         <div className="row between"><button className="icon-btn" onClick={toggle}><ChevronsRight size={16} /></button><span className="mono muted">{dayMonth(date)}</span></div>
-        <Sec k="plan" title="The plan" right={<button style={{ fontSize: 13 }} onClick={() => setEditing(true)}>Write</button>}>
+        <Sec k="plan" title="The plan" right={<span className="row" style={{ gap: 10 }}><button style={{ fontSize: 13 }} onClick={() => setEditing(true)}>Write</button><button className="row blue" style={{ fontSize: 13, gap: 4 }} onClick={() => nav('/premarket')} title="Open the full pre-market page"><Maximize2 size={12} /> Full</button></span>}>
           {hasPlan ? (
             <div className="col" style={{ gap: 10, fontSize: 13 }}>
               {plan.bias && <div className="row between"><span className="muted">Bias</span><b>{plan.bias}</b></div>}
-              {[['Key levels', 'keyLevels'], ['Rule reminder', 'ruleReminder'], ['Avoid', 'avoid']].map(([l, k]) => plan[k] && <div key={k}><div className="eyebrow" style={{ fontSize: 10, marginBottom: 3 }}>{l}</div><div style={{ color: '#c9c9d0', lineHeight: 1.45 }}>{plan[k]}</div></div>)}
+              {[['Key levels', 'keyLevels'], ['Rule reminder', 'ruleReminder'], ['Avoid', 'avoid']].map(([l, k]) => plan[k] && <div key={k}><div className="eyebrow" style={{ fontSize: 10, marginBottom: 3 }}>{l}</div><div style={{ color: 'var(--text2)', lineHeight: 1.45 }}>{plan[k]}</div></div>)}
             </div>
           ) : (
-            <button onClick={() => setEditing(true)} style={{ width: '100%', border: '1px dashed #2a2a30', borderRadius: 12, padding: 16, color: 'var(--muted)', fontSize: 13 }}>No pre-market plan yet</button>
+            <button onClick={() => setEditing(true)} className="dashed">No pre-market plan yet</button>
           )}
         </Sec>
         <Sec k="check" title="Checklist" right={<button className="row muted mono" style={{ fontSize: 12, gap: 6 }} onClick={() => openModal('settings', { tab: 'Checklist' })}>{checklist.filter((_, i) => checks[i]).length}/{checklist.length} <Pencil size={12} /></button>}>
           <div className="col" style={{ gap: 10 }}>
             {checklist.map((c, i) => (
-              <button key={i} className="row" style={{ alignItems: 'flex-start', gap: 10, textAlign: 'left', fontSize: 13.5, color: checks[i] ? 'var(--muted)' : '#d6d6dc' }} onClick={() => setCheck(i)}>
-                <motion.span animate={{ background: checks[i] ? '#4ade80' : 'rgba(0,0,0,0)', borderColor: checks[i] ? '#4ade80' : '#55555e' }} style={{ width: 17, height: 17, borderRadius: '50%', border: '1.5px solid', flex: 'none', marginTop: 1, display: 'grid', placeItems: 'center', color: '#052', fontSize: 11 }}>{checks[i] ? '✓' : ''}</motion.span>
+              <button key={i} className="row" style={{ alignItems: 'flex-start', gap: 10, textAlign: 'left', fontSize: 13.5, color: checks[i] ? 'var(--muted)' : 'var(--text2)' }} onClick={() => setCheck(i)}>
+                <motion.span animate={{ scale: checks[i] ? [1, 1.25, 1] : 1 }} style={{ background: checks[i] ? 'var(--blue)' : 'transparent', transition: 'background .2s, border-color .2s', width: 17, height: 17, borderRadius: '50%', border: `1.5px solid ${checks[i] ? 'var(--blue)' : 'var(--dim)'}`, flex: 'none', marginTop: 1, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 11 }}>{checks[i] ? '✓' : ''}</motion.span>
                 <span style={{ textDecoration: checks[i] ? 'line-through' : 'none' }}>{c}</span>
               </button>
             ))}

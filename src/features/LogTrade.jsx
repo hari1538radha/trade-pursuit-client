@@ -7,6 +7,7 @@ import { cls } from '../lib/format.js';
 import { today, longDate, nowTime } from '../lib/dates.js';
 import { compressImage } from '../lib/image.js';
 import { fromCSV } from '../lib/csv.js';
+import AssetPicker from '../components/AssetPicker.jsx';
 
 const SESSIONS = ['Asia', 'London', 'NY AM', 'NY PM', 'No session'];
 const POS = ['Patient', 'Disciplined', 'Focused', 'Calm', 'Confident', 'Rule-Following', 'Selective', 'Prepared'];
@@ -98,7 +99,7 @@ export default function LogTrade({ open, onClose, trade }) {
                   <h4>No Trade Day</h4>
                   <p className="muted" style={{ marginTop: -8 }}>Sitting out is a decision. Log it so your streaks and discipline stats count it.</p>
                   <div className="fgrid" style={{ marginTop: 16 }}>
-                    <Field label="Date"><input type="date" className="input" style={{ colorScheme: 'dark' }} value={f.date} onChange={set('date')} /></Field>
+                    <Field label="Date"><input type="date" className="input" value={f.date} onChange={set('date')} /></Field>
                     <Field label="Account"><AccountPick accounts={accounts} value={f.accounts} onChange={set('accounts')} /></Field>
                   </div>
                   <div style={{ marginTop: 18 }}><Field label="Why no trade?"><textarea className="textarea" value={f.notes} onChange={set('notes')} placeholder="No setup formed. News day. Already hit my weekly goal…" /></Field></div>
@@ -108,19 +109,18 @@ export default function LogTrade({ open, onClose, trade }) {
                   <section className="log-section">
                     <h4>Trade Info</h4>
                     <div className="fgrid">
-                      <Field label="Symbol"><input className="input" value={f.symbol} onChange={set('symbol')} placeholder="MNQ" style={{ textTransform: 'uppercase' }} /></Field>
-                      <Field label="Date"><input type="date" className="input" style={{ colorScheme: 'dark' }} value={f.date} onChange={set('date')} /></Field>
-                      <Field label="Asset class"><select className="select" value={f.assetClass} onChange={set('assetClass')}>{['Futures', 'Forex', 'Indices', 'Crypto', 'Stocks', 'Options', 'Commodities'].map((o) => <option key={o}>{o}</option>)}</select></Field>
+                      <AssetPicker assetClass={f.assetClass} symbol={f.symbol} onChange={(v) => setF((x) => ({ ...x, ...v }))} />
+                      <Field label="Date"><input type="date" className="input" value={f.date} onChange={set('date')} /></Field>
                       <Field label="Trade type"><select className="select" value={f.tradeType} onChange={set('tradeType')}>{['Day', 'Scalp', 'Swing', 'Position'].map((o) => <option key={o}>{o}</option>)}</select></Field>
                     </div>
                     <div className="row" style={{ gap: 10, margin: '20px 0' }}>
-                      {[['long', 'Long', ArrowUp], ['short', 'Short', ArrowDown]].map(([v, l, I]) => <button key={v} className={cls('dir-btn row', f.direction === v && 'on')} style={{ justifyContent: 'center' }} onClick={() => set('direction')(v)}><I size={17} /> {l}</button>)}
+                      {[['long', 'Long', ArrowUp], ['short', 'Short', ArrowDown]].map(([v, l, I]) => <button key={v} className={cls('dir-btn row', v, f.direction === v && 'on')} style={{ justifyContent: 'center' }} onClick={() => set('direction')(v)}><I size={17} /> {l}</button>)}
                     </div>
                     <Field label="Session">
                       <div className="row wrap" style={{ gap: 8 }}>{SESSIONS.map((s) => <button key={s} className={cls('chip', f.session === s && 'on')} onClick={() => set('session')(f.session === s ? '' : s)}>{s}</button>)}</div>
                     </Field>
                     {f.session && f.session !== 'No session' && <p className="muted" style={{ fontSize: 13.5 }}>Lands in {longDate(f.date)}, {f.session}. Counts in the {f.session} P&amp;L and the daily P&amp;L.</p>}
-                    <div style={{ marginTop: 18 }}><Field label="Followed my plan"><div className="row" style={{ gap: 8 }}>{[true, false].map((v) => <button key={String(v)} className={cls('dir-btn', f.followedPlan === v && 'on')} style={{ flex: '0 0 140px' }} onClick={() => set('followedPlan')(v)}>{v ? 'Yes' : 'No'}</button>)}</div></Field></div>
+                    <div style={{ marginTop: 18 }}><Field label="Followed my plan"><div className="row" style={{ gap: 8 }}>{[true, false].map((v) => <button key={String(v)} className={cls('dir-btn', !v && 'short', f.followedPlan === v && 'on')} style={{ flex: '0 0 140px' }} onClick={() => set('followedPlan')(v)}>{v ? 'Yes' : 'No'}</button>)}</div></Field></div>
                     <div style={{ marginTop: 18 }}><Field label="Account" right={<button className="muted" style={{ textTransform: 'none', letterSpacing: 0 }} onClick={() => openModal('addAccount')}>Manage</button>}><AccountPick accounts={accounts} value={f.accounts} onChange={set('accounts')} /></Field></div>
                   </section>
 
@@ -138,8 +138,8 @@ export default function LogTrade({ open, onClose, trade }) {
                       <>
                         <div className="divider" style={{ margin: '22px 0' }} />
                         <div className="fgrid">
-                          <Field label="Entry time"><input type="time" step="1" className="input" style={{ colorScheme: 'dark' }} value={f.entryTime || ''} onChange={set('entryTime')} /></Field>
-                          <Field label="Exit / close time"><input type="time" step="1" className="input" style={{ colorScheme: 'dark' }} value={f.exitTime || ''} onChange={set('exitTime')} /></Field>
+                          <Field label="Entry time"><input type="time" step="1" className="input" value={f.entryTime || ''} onChange={set('entryTime')} /></Field>
+                          <Field label="Exit / close time"><input type="time" step="1" className="input" value={f.exitTime || ''} onChange={set('exitTime')} /></Field>
                           <Field label="Stop loss"><input className="input" inputMode="decimal" placeholder="0.00" value={f.stopLoss} onChange={set('stopLoss')} onBlur={autoRR} /></Field>
                           <Field label="Target"><input className="input" inputMode="decimal" placeholder="0.00" value={f.target} onChange={set('target')} onBlur={autoRR} /></Field>
                           <Legs label="Partials" add="Add partial" value={f.partials} onChange={set('partials')} />
@@ -192,7 +192,7 @@ export default function LogTrade({ open, onClose, trade }) {
               )}
             </motion.div>
           </AnimatePresence>
-          <div className="row" style={{ position: 'sticky', bottom: 0, padding: '14px 0', background: '#0b0b0d', borderTop: '1px solid #1c1c21', gap: 10, zIndex: 3 }}>
+          <div className="row" style={{ position: 'sticky', bottom: 0, padding: '14px 0', background: 'var(--sheet)', borderTop: '1px solid var(--line)', gap: 10, zIndex: 3 }}>
             {trade && <button className="btn danger" onClick={async () => { if (await confirmAsk('Delete this trade?')) { await deleteTrade(trade.id); notify('Trade deleted'); onClose(); } }}><Trash2 size={15} /> Delete</button>}
             <button className="btn primary grow" style={{ height: 52, fontSize: 16 }} disabled={saving} onClick={save}><Check size={17} /> {trade ? 'Save changes' : 'Log trade'}</button>
           </div>
@@ -273,7 +273,7 @@ function Pictures({ images, onChange }) {
         {images.length < 6 && (
           <>
             <ImagePlus size={26} style={{ marginTop: images.length ? 20 : 0 }} />
-            <div>Drop screenshots, or <button style={{ color: '#fff' }} onClick={() => fileRef.current.click()}>choose files</button></div>
+            <div>Drop screenshots, or <button className="link" onClick={() => fileRef.current.click()}>choose files</button></div>
             <div className="dim row" style={{ gap: 6, fontSize: 13 }}><Clipboard size={13} /> Cmd/Ctrl+V works here too</div>
           </>
         )}

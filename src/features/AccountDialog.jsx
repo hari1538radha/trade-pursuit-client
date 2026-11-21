@@ -31,7 +31,7 @@ export default function AccountDialog({ open, onClose, id }) {
       </div>
       {range != null && (
         <div style={{ margin: '22px 0 6px' }}>
-          <div style={{ height: 8, borderRadius: 8, background: '#2a2a30', position: 'relative' }}>
+          <div style={{ height: 8, borderRadius: 8, background: 'var(--panel3)', position: 'relative' }}>
             <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(0, Math.min(1, range)) * 100}%` }} transition={{ duration: 0.9, ease }} style={{ height: '100%', borderRadius: 8, background: m.breached ? 'var(--red)' : 'linear-gradient(90deg,#2337c6,#4ade80)' }} />
           </div>
           <div className="prog-legend"><b>{usd(m.failBelow)}<small>Fail below</small></b><b style={{ textAlign: 'center' }}>{usd(m.balance)}<small>Now</small></b><b style={{ textAlign: 'right' }}>{usd(m.targetBal)}<small>Target</small></b></div>
@@ -39,7 +39,7 @@ export default function AccountDialog({ open, onClose, id }) {
       )}
       {m.breached && <p className="neg">{m.dailyBreach ? 'A day crossed the daily loss limit.' : 'Balance is at or below the max loss line.'} Mark it failed if the firm closed it.</p>}
       {m.hit && <p className="pos">Target reached with {m.days} trading days. Mark it passed when the firm confirms.</p>}
-      {m.buffer != null && !m.breached && <p className="muted">Room before max loss: <b style={{ color: '#fff' }}>{usd(m.buffer)}</b>{a.rules?.dailyLoss ? <> · Daily limit {usd(a.rules.dailyLoss)}</> : null}</p>}
+      {m.buffer != null && !m.breached && <p className="muted">Room before max loss: <b style={{ color: 'var(--text)' }}>{usd(m.buffer)}</b>{a.rules?.dailyLoss ? <> · Daily limit {usd(a.rules.dailyLoss)}</> : null}</p>}
 
       <div className="divider" />
       <div className="fgrid">

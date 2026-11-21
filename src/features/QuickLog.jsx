@@ -5,6 +5,7 @@ import { useApp } from '../store/AppContext.jsx';
 import { Sheet } from '../components/ui.jsx';
 import { cls } from '../lib/format.js';
 import { today, shortDate } from '../lib/dates.js';
+import { ALL_SYMBOLS, categoryOf } from '../lib/assets.js';
 
 const GRADES = ['A+', 'A', 'B', 'C', 'F'];
 const gcls = { 'A+': '', A: 'g-a', B: '', C: 'g-c', F: 'g-f' };
@@ -25,7 +26,8 @@ export default function QuickLog({ open, onClose }) {
     if (!f) return;
     const pnl = parseFloat(String(f.pnl).replace(/[$,]/g, ''));
     if (!Number.isFinite(pnl)) return notify('Enter a P&L');
-    await saveTrade({ symbol: f.symbol || lastSym, date: f.date, direction: f.direction, pnl, grade: f.grade, playbook: f.playbook || undefined });
+    const symbol = (f.symbol || lastSym).toUpperCase();
+    await saveTrade({ symbol, ...(categoryOf(symbol) && { assetClass: categoryOf(symbol) }), date: f.date, direction: f.direction, pnl, grade: f.grade, playbook: f.playbook || undefined });
     notify('Trade logged');
     onClose();
   };
@@ -51,12 +53,12 @@ export default function QuickLog({ open, onClose }) {
       <div className="ql">
         <p className="muted" style={{ textAlign: 'center', fontSize: 16, margin: '0 0 22px' }}>L / S = direction · 1—5 = grade · Enter = submit</p>
         <div className="grid" style={{ gridTemplateColumns: '1.5fr 1fr', gap: 18 }}>
-          <div className="ql-box"><div className="eyebrow">Symbol</div><input ref={symRef} className="ql-sym" placeholder={lastSym} value={f.symbol} onChange={(e) => setF({ ...f, symbol: e.target.value })} onKeyDown={(e) => e.key === 'Tab' && !f.symbol && setF({ ...f, symbol: lastSym })} /></div>
-          <div className="ql-box"><div className="eyebrow">Date</div><input type="date" className="input" style={{ background: 'none', fontSize: 22, padding: '10px 0', colorScheme: 'dark' }} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /><div className="dim" style={{ fontSize: 12 }}>{shortDate(f.date)}</div></div>
+          <div className="ql-box"><div className="eyebrow">Symbol</div><input ref={symRef} list="ql-symbols" className="ql-sym" placeholder={lastSym} value={f.symbol} onChange={(e) => setF({ ...f, symbol: e.target.value })} onKeyDown={(e) => e.key === 'Tab' && !f.symbol && setF({ ...f, symbol: lastSym })} /><datalist id="ql-symbols">{ALL_SYMBOLS.map((x) => <option key={x.symbol} value={x.symbol}>{x.name} · {x.category}</option>)}</datalist></div>
+          <div className="ql-box"><div className="eyebrow">Date</div><input type="date" className="input" style={{ background: 'none', fontSize: 22, padding: '10px 0' }} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /><div className="dim" style={{ fontSize: 12 }}>{shortDate(f.date)}</div></div>
         </div>
         <div className="row" style={{ gap: 18, marginTop: 18 }}>
           {[['long', 'Long', TrendingUp, 'L'], ['short', 'Short', TrendingDown, 'S']].map(([v, l, I, k]) => (
-            <motion.button whileTap={{ scale: 0.97 }} key={v} className={cls('ql-dir', f.direction === v && 'on')} onClick={() => setF({ ...f, direction: v })}>
+            <motion.button whileTap={{ scale: 0.97 }} key={v} className={cls('ql-dir', v, f.direction === v && 'on')} onClick={() => setF({ ...f, direction: v })}>
               <I size={34} /> {l.toUpperCase()} <small>PRESS {k}</small>
             </motion.button>
           ))}

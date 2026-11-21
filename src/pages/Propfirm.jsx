@@ -52,7 +52,7 @@ export default function Propfirm() {
             <div className="row between" style={{ margin: '34px 0 14px' }}>
               <span className="eyebrow">Firms</span>
               <div className="row">
-                <div className="row" style={{ background: '#1c1c20', borderRadius: 10, padding: '0 10px', width: 220 }}><Search size={14} className="muted" /><input className="input" style={{ background: 'none', padding: 8 }} placeholder="Search firms" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+                <div className="row" className="search" style={{ width: 220 }}><Search size={14} className="muted" /><input className="input" style={{ background: 'none', padding: 8 }} placeholder="Search firms" value={q} onChange={(e) => setQ(e.target.value)} /></div>
                 <Seg options={['All', 'CFD', 'Futures']} value={type} onChange={setType} />
               </div>
             </div>
@@ -87,9 +87,9 @@ export default function Propfirm() {
 }
 
 function AccountTile({ a, m, i, onClick }) {
-  const statusColor = { passed: 'var(--green)', failed: 'var(--red)', archived: 'var(--muted)', active: '#7c9cff' }[a.status];
+  const statusColor = { passed: 'var(--green)', failed: 'var(--red)', archived: 'var(--muted)', active: 'var(--blue)' }[a.status];
   return (
-    <motion.button layout initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} whileHover={{ y: -3 }} className="card" style={{ textAlign: 'left', background: 'linear-gradient(180deg,#191c30,#141417 60%)' }} onClick={onClick}>
+    <motion.button layout initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} whileHover={{ y: -3 }} className="card" style={{ textAlign: 'left', background: 'linear-gradient(180deg,var(--blue-soft),transparent 60%), var(--panel)' }} onClick={onClick}>
       <div className="row between"><span className="eyebrow">{a.firmName}</span><span className="tag" style={{ color: statusColor }}>{a.status === 'active' ? (a.kind === 'funded' ? 'Funded' : a.phase) : a.status}</span></div>
       <div style={{ fontSize: 22, fontWeight: 700, margin: '8px 0 2px' }}>{a.name}</div>
       <div className="muted" style={{ fontSize: 13 }}>{usd(a.size)} · {a.program} {a.variant}</div>
@@ -97,7 +97,7 @@ function AccountTile({ a, m, i, onClick }) {
       <div className="row between" style={{ marginTop: 6 }}><span className="muted">P&amp;L</span><b><Money value={m.pnl} cents={false} /></b></div>
       {m.progress != null && (
         <>
-          <div className="bar" style={{ marginTop: 14, height: 6 }}><motion.i initial={{ width: 0 }} animate={{ width: `${m.progress * 100}%` }} transition={{ duration: 0.9, ease }} style={{ background: m.hit ? 'var(--green)' : '#fff' }} /></div>
+          <div className="bar" style={{ marginTop: 14, height: 6 }}><motion.i initial={{ width: 0 }} animate={{ width: `${m.progress * 100}%` }} transition={{ duration: 0.9, ease }} style={{ background: m.hit ? 'var(--green)' : 'var(--blue)' }} /></div>
           <div className="row between muted" style={{ fontSize: 12, marginTop: 6 }}><span>{Math.round(m.progress * 100)}% to target</span><span>{money(Math.max(0, m.targetBal - m.balance), { sign: false, cents: false })} left</span></div>
         </>
       )}

@@ -11,7 +11,7 @@ import { money, pct } from '../lib/format.js';
 import { BarChart3 } from 'lucide-react';
 
 const TABS = ['Overview', 'Performance', 'Time', 'Psychology', 'Insights', 'Risk'];
-const G = '#4ade80', R = '#f87171';
+const G = 'var(--green)', R = 'var(--red)';
 
 export default function Analytics() {
   const { trades: all, breakEven, hidePnl, toggleHide, accounts } = useApp();
@@ -119,8 +119,8 @@ function Bars({ data, dataKey = 'pnl', name = 'P&L', height = 260, fmt, layout }
         <BarChart data={data} layout={vertical ? 'vertical' : 'horizontal'} margin={{ left: vertical ? 20 : 0 }}>
           <CartesianGrid strokeDasharray="3 4" vertical={vertical} horizontal={!vertical} />
           {vertical ? <><XAxis type="number" tickLine={false} axisLine={false} tickFormatter={f} /><YAxis type="category" dataKey="key" tickLine={false} axisLine={false} width={150} /></> : <><XAxis dataKey="key" tickLine={false} axisLine={false} /><YAxis tickLine={false} axisLine={false} width={60} tickFormatter={f} /></>}
-          <Tooltip cursor={{ fill: '#ffffff08' }} content={<ChartTip fmt={f} />} />
-          <ReferenceLine {...(vertical ? { x: 0 } : { y: 0 })} stroke="#444" />
+          <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTip fmt={f} />} />
+          <ReferenceLine {...(vertical ? { x: 0 } : { y: 0 })} stroke="var(--line2)" />
           <Bar dataKey={dataKey} name={name} radius={vertical ? [0, 6, 6, 0] : [6, 6, 0, 0]} animationDuration={900}>
             {data.map((d, i) => <Cell key={i} fill={(d.pnl ?? d[dataKey]) >= 0 ? G : R} fillOpacity={dataKey !== 'count' && d.count < 5 ? 0.45 : 1} />)}
           </Bar>
@@ -143,7 +143,7 @@ function Performance({ trades, be }) {
         <h3>Combos that pay</h3><div className="sub">Trades with all of these chips: your win rate and what each one makes. Faded: fewer than 5 trades.</div>
         <div className="col" style={{ gap: 8, marginTop: 16 }}>
           {cmb.length ? cmb.map((c, i) => (
-            <motion.div key={c.key} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: c.count < 5 ? 0.5 : 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.04 }} className="row" style={{ padding: '10px 14px', background: '#1a1a1e', borderRadius: 12 }}>
+            <motion.div key={c.key} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: c.count < 5 ? 0.5 : 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.04 }} className="row" style={{ padding: '10px 14px', background: 'var(--panel2)', borderRadius: 12 }}>
               <span className="grow">{c.key.split(' + ').map((k) => <span key={k} className="tag" style={{ marginRight: 6 }}>{k}</span>)}</span>
               <span className="muted" style={{ width: 90 }}>{c.count} trades</span>
               <span style={{ width: 70 }}>{c.winRate.toFixed(0)}%</span>
@@ -158,8 +158,8 @@ function Performance({ trades, be }) {
           <h3>Playbook report card</h3><div className="sub">Each setup graded on its win rate</div>
           <div className="col" style={{ gap: 8, marginTop: 16 }}>
             {strat.length ? strat.map((p) => (
-              <div key={p.key} className="row" style={{ padding: '10px 0', borderBottom: '1px solid #222' }}>
-                <span className="grade-badge" style={{ width: 36, height: 36, fontSize: 16, background: { A: '#14532d', B: '#1e3a5f', C: '#3f3a14', D: '#4a2a12', F: '#4a1a1e' }[grade(p.winRate, p.count)] || '#2a2a30' }}>{grade(p.winRate, p.count)}</span>
+              <div key={p.key} className="row" style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+                <span className="grade-badge" style={{ width: 36, height: 36, fontSize: 16, background: { A: 'var(--green)', B: 'var(--blue)', C: 'var(--gold)', D: '#f97316', F: 'var(--red)' }[grade(p.winRate, p.count)] || 'var(--panel3)', color: grade(p.winRate, p.count) === '—' ? undefined : '#fff' }}>{grade(p.winRate, p.count)}</span>
                 <b className="grow">{p.key}</b><span className="muted">{p.count} trades · {p.winRate.toFixed(0)}%</span><b style={{ width: 90, textAlign: 'right' }}><Money value={p.pnl} cents={false} /></b>
               </div>
             )) : <p className="muted">Pick a playbook when you log trades.</p>}
@@ -168,7 +168,7 @@ function Performance({ trades, be }) {
         <Reveal className="card"><h3>P&amp;L by symbol</h3><Bars data={sym} layout="vertical" /></Reveal>
         <Reveal delay={0.05} className="card"><h3>Long vs short</h3>
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', marginTop: 16 }}>
-            {['Long', 'Short'].map((k) => { const d = dir.find((x) => x.key === k) || { count: 0, pnl: 0, winRate: 0 }; return <div key={k} className="card" style={{ background: '#1a1a1e' }}><div className="muted">{k}</div><div style={{ fontSize: 30, fontWeight: 700, margin: '8px 0' }}><Money value={d.pnl} cents={false} /></div><div className="muted">{d.count} trades · {d.winRate.toFixed(0)}% win</div></div>; })}
+            {['Long', 'Short'].map((k) => { const d = dir.find((x) => x.key === k) || { count: 0, pnl: 0, winRate: 0 }; return <div key={k} className="card" style={{ background: 'var(--panel2)' }}><div className="muted">{k}</div><div style={{ fontSize: 30, fontWeight: 700, margin: '8px 0' }}><Money value={d.pnl} cents={false} /></div><div className="muted">{d.count} trades · {d.winRate.toFixed(0)}% win</div></div>; })}
           </div>
         </Reveal>
       </div>
@@ -199,7 +199,7 @@ function Psych({ trades, be }) {
       <Reveal delay={0.05} className="card"><h3>Positive emotions</h3><div className="sub">What discipline has paid</div><Bars data={pos} layout="vertical" /></Reveal>
       <Reveal className="card"><h3>Life and your trading</h3><div className="sub">Plan vs no plan, revenge vs clean</div>
         <div className="col" style={{ gap: 10, marginTop: 14 }}>
-          {[...plan, ...rev].map((g) => <div key={g.key} className="row between" style={{ padding: '10px 14px', background: '#1a1a1e', borderRadius: 12 }}><span>{g.key}</span><span className="muted">{g.count} · {g.winRate.toFixed(0)}% · avg <Money value={g.avg} cents={false} /></span><b><Money value={g.pnl} cents={false} /></b></div>)}
+          {[...plan, ...rev].map((g) => <div key={g.key} className="row between" style={{ padding: '10px 14px', background: 'var(--panel2)', borderRadius: 12 }}><span>{g.key}</span><span className="muted">{g.count} · {g.winRate.toFixed(0)}% · avg <Money value={g.avg} cents={false} /></span><b><Money value={g.pnl} cents={false} /></b></div>)}
         </div>
       </Reveal>
       <Reveal delay={0.05} className="card"><h3>P&amp;L by grade</h3><div className="sub">Do your A+ trades actually pay more?</div><Bars data={gr} /></Reveal>

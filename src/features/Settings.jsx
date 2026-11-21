@@ -17,20 +17,20 @@ export default function Settings({ open, onClose, tab: initial }) {
       {open && (
         <motion.div className="overlay center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
           <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.35, ease }}
-            style={{ width: 'min(1100px,96vw)', height: 'min(820px,92vh)', background: '#151518', border: '1px solid #26262c', borderRadius: 30, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: 150, background: 'linear-gradient(180deg,#5a5a60 0%,#2a2a2f 55%,#151518 100%)', position: 'relative', flex: 'none' }}>
+            style={{ width: 'min(1100px,96vw)', height: 'min(820px,92vh)', background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: 30, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ height: 150, background: 'linear-gradient(180deg,var(--blue) 0%,var(--navy) 55%,var(--panel) 100%)', position: 'relative', flex: 'none' }}>
               <svg viewBox="0 0 1100 150" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}><path d="M0 110 L140 60 L260 95 L420 35 L560 90 L720 50 L880 100 L1100 40 L1100 150 L0 150Z" fill="#1d1d21" opacity=".8" /><path d="M0 130 L180 95 L330 125 L500 80 L700 120 L900 85 L1100 115 L1100 150 L0 150Z" fill="#151518" /></svg>
               <button className="close-x" onClick={onClose} style={{ position: 'absolute', top: 18, right: 18 }}><X size={18} /></button>
               <div className="row" style={{ position: 'absolute', left: 30, bottom: -10, gap: 16 }}>
-                <span className="avatar lg" style={{ background: '#1b1b1f' }}>{initials(user.displayName)}</span>
+                <span className="avatar lg">{initials(user.displayName)}</span>
                 <div><b style={{ fontSize: 26 }}>{user.displayName}</b><div className="muted">@{user.username} · Free forever</div></div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', flex: 1, minHeight: 0, marginTop: 20 }}>
               <nav style={{ padding: '10px 14px', overflowY: 'auto' }}>
                 {TABS.map(([t, I]) => (
-                  <button key={t} onClick={() => setTab(t)} className="row" style={{ width: '100%', gap: 12, padding: '11px 12px', borderRadius: 12, position: 'relative', color: tab === t ? '#fff' : '#b5b5bd', fontSize: 15 }}>
-                    {tab === t && <motion.span layoutId="settab" style={{ position: 'absolute', inset: 0, background: '#222227', borderRadius: 12, zIndex: 0 }} />}
+                  <button key={t} onClick={() => setTab(t)} className="row" style={{ width: '100%', gap: 12, padding: '11px 12px', borderRadius: 12, position: 'relative', color: tab === t ? 'var(--text)' : 'var(--text2)', fontSize: 15 }}>
+                    {tab === t && <motion.span layoutId="settab" style={{ position: 'absolute', inset: 0, background: 'var(--panel3)', borderRadius: 12, zIndex: 0 }} />}
                     <I size={17} style={{ zIndex: 1 }} /><span style={{ zIndex: 1 }}>{t}</span>
                   </button>
                 ))}
@@ -142,7 +142,7 @@ function Data({ onClose }) {
     <div className="col" style={{ gap: 14, maxWidth: 560 }}>
       <div className="card row between"><div><b>Export trades</b><div className="muted" style={{ fontSize: 13 }}>{allTrades.length} entries as CSV</div></div><button className="btn" onClick={() => download('edgelog-trades.csv', toCSV(allTrades))}>Download CSV</button></div>
       <div className="card row between"><div><b>Import trades</b><div className="muted" style={{ fontSize: 13 }}>Use “Import CSV” in Log Trade. Needs Date and P&amp;L columns.</div></div></div>
-      <div className="card row between" style={{ borderColor: '#4a2228' }}>
+      <div className="card row between" style={{ borderColor: 'var(--loss-line)' }}>
         <div><b className="neg">Delete history</b><div className="muted" style={{ fontSize: 13 }}>Removes all trades, plans and accounts. Your login stays.</div></div>
         <button className="btn danger" onClick={async () => { if (await confirmAsk('Type DELETE to wipe your journal. This cannot be undone.', 'DELETE')) { await api.auth.deleteHistory(); await loadData(); notify('History deleted'); onClose(); } }}>Delete</button>
       </div>

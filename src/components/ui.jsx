@@ -9,9 +9,9 @@ export const ease = [0.22, 1, 0.36, 1];
 export function Logo({ size = 30 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-label="Trade Pursuit">
-      <rect width="32" height="32" rx="10" fill="#f4f4f5" />
-      <path d="M8 21.5l5.2-6.2 4.2 3.2L24 10" stroke="#09090b" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="24" cy="10" r="2.2" fill="#09090b" />
+      <rect width="32" height="32" rx="10" fill="var(--inv-bg)" />
+      <path d="M8 21.5l5.2-6.2 4.2 3.2L24 10" stroke="var(--inv-text)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="24" cy="10" r="2.2" fill="var(--inv-text)" />
     </svg>
   );
 }
@@ -52,7 +52,7 @@ export function ChipGroup({ options, value = [], onChange, multi = true, tone, o
         ))}
       </div>
       {onAdd && (
-        <form className="row" style={{ marginTop: 14, borderBottom: '1px solid #2a2a30' }} onSubmit={(e) => { e.preventDefault(); const v = draft.trim(); if (!v) return; onAdd(v); toggle(v); setDraft(''); }}>
+        <form className="row" style={{ marginTop: 14, borderBottom: '1px solid var(--line2)' }} onSubmit={(e) => { e.preventDefault(); const v = draft.trim(); if (!v) return; onAdd(v); toggle(v); setDraft(''); }}>
           <input className="grow" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={addLabel} style={{ background: 'none', border: 0, outline: 'none', padding: '8px 2px' }} />
           <button className="muted" type="submit">Add</button>
         </form>

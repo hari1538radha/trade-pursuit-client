@@ -57,9 +57,9 @@ export default function Journal() {
         {dateParam && <span className="tag">{shortDate(dateParam)} <button onClick={() => setParams({})}><X size={12} /></button></span>}
         <span className="grow" />
         <button className="btn sm" onClick={() => download('trades.csv', toCSV(filtered))}><FileDown size={14} /> CSV</button>
-        <div className="row" style={{ background: '#1c1c20', borderRadius: 10, padding: '0 10px', width: 260 }}><Search size={14} className="muted" /><input className="input" style={{ background: 'none', padding: '8px' }} placeholder="Search symbol, setup…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <button className={cls('icon-btn', layout === 'grid' && 'on')} style={{ color: layout === 'grid' ? '#fff' : undefined }} onClick={() => { setLayout('grid'); localStorage.setItem('edgelog.layout', 'grid'); }}><LayoutGrid size={16} /></button>
-        <button className="icon-btn" style={{ color: layout === 'list' ? '#fff' : undefined }} onClick={() => { setLayout('list'); localStorage.setItem('edgelog.layout', 'list'); }}><List size={16} /></button>
+        <div className="row" className="search" style={{ width: 260 }}><Search size={14} className="muted" /><input className="input" style={{ background: 'none', padding: '8px' }} placeholder="Search symbol, setup…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <button className={cls('icon-btn', layout === 'grid' && 'on')} style={{ color: layout === 'grid' ? 'var(--blue)' : undefined }} onClick={() => { setLayout('grid'); localStorage.setItem('edgelog.layout', 'grid'); }}><LayoutGrid size={16} /></button>
+        <button className="icon-btn" style={{ color: layout === 'list' ? 'var(--blue)' : undefined }} onClick={() => { setLayout('list'); localStorage.setItem('edgelog.layout', 'list'); }}><List size={16} /></button>
         <AnimatePresence>
           {showF && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ width: '100%', overflow: 'hidden' }}>
@@ -68,8 +68,8 @@ export default function Journal() {
                 <select className="select" style={{ width: 150 }} value={f.session} onChange={(e) => setF({ ...f, session: e.target.value })}><option value="">Any session</option>{['Asia', 'London', 'NY AM', 'NY PM'].map((x) => <option key={x}>{x}</option>)}</select>
                 <select className="select" style={{ width: 120 }} value={f.grade} onChange={(e) => setF({ ...f, grade: e.target.value })}><option value="">Any grade</option>{['A+', 'A', 'B', 'C', 'F'].map((x) => <option key={x}>{x}</option>)}</select>
                 <select className="select" style={{ width: 200 }} value={f.account} onChange={(e) => setF({ ...f, account: e.target.value })}><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-                <input type="date" className="input" style={{ width: 160, colorScheme: 'dark' }} value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
-                <input type="date" className="input" style={{ width: 160, colorScheme: 'dark' }} value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} />
+                <input type="date" className="input" style={{ width: 160 }} value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
+                <input type="date" className="input" style={{ width: 160 }} value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} />
                 <button className="btn sm ghost" onClick={() => { setF({ result: '', session: '', account: '', from: '', to: '', grade: '' }); setParams({}); }}>Clear</button>
               </div>
             </motion.div>
@@ -121,7 +121,7 @@ function Periods({ trades, weekly, onPick }) {
       {rows.map((r, i) => (
         <motion.button key={r.key} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }} className="card row" style={{ padding: 16, textAlign: 'left' }} onClick={() => !weekly && onPick(r.key)}>
           <div style={{ width: 260 }}><b>{r.label}</b><div className="muted" style={{ fontSize: 13 }}>{r.count} trades · {r.wr.toFixed(0)}% win{weekly ? ` · ${r.days} days` : ''}</div></div>
-          <div className="grow" style={{ height: 8, background: '#1f1f24', borderRadius: 8, position: 'relative' }}>
+          <div className="grow" style={{ height: 8, background: 'var(--panel3)', borderRadius: 8, position: 'relative' }}>
             <motion.div initial={{ width: 0 }} animate={{ width: `${(Math.abs(r.pnl) / max) * 50}%` }} style={{ position: 'absolute', height: '100%', borderRadius: 8, left: r.pnl >= 0 ? '50%' : undefined, right: r.pnl < 0 ? '50%' : undefined, background: r.pnl >= 0 ? 'var(--green)' : 'var(--red)' }} />
           </div>
           <b style={{ width: 120, textAlign: 'right' }}><Money value={r.pnl} /></b>
