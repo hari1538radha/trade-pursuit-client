@@ -7,6 +7,7 @@ import { useApp } from '../store/AppContext.jsx';
 import { Money, CountUp, Reveal, ChartTip, Field } from '../components/ui.jsx';
 import Calendar from '../components/Calendar.jsx';
 import ExecutionStats from '../components/ExecutionStats.jsx';
+import RangeCheck from '../components/RangeCheck.jsx';
 import { summary, cumulative, real } from '../lib/stats.js';
 import { longDate, today, weekStart, dayMonth, addDays } from '../lib/dates.js';
 import { money } from '../lib/format.js';
@@ -37,7 +38,9 @@ export default function Dashboard() {
         </Reveal>
       )}
 
-      <div style={{ textAlign: 'center', margin: '40px 0 50px' }}>
+      <div style={{ marginTop: 22 }}><RangeCheck /></div>
+
+      <div className="hero glass" style={{ textAlign: 'center', margin: '40px 0 50px' }}>
         <div className="eyebrow">Total P&amp;L</div>
         <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} style={{ fontSize: 'clamp(60px,9vw,120px)', fontWeight: 800, letterSpacing: '-.05em', textShadow: '0 0 60px var(--glow)' }}>
           {hidePnl ? '$•••' : <CountUp value={s.total} format={(n) => money(n, { cents: false })} />}

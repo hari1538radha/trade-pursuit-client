@@ -13,7 +13,7 @@ export default function Modals() {
   return (
     <>
       <QuickLog open={t === 'quick'} onClose={closeModal} />
-      <LogTrade open={t === 'log'} onClose={closeModal} trade={p.trade} />
+      <LogTrade open={t === 'log'} onClose={closeModal} trade={p.trade} tab={p.tab} />
       <Settings open={t === 'settings'} onClose={closeModal} tab={p.tab} />
       <AddAccount open={t === 'addAccount'} onClose={closeModal} firmId={p.firmId} />
       <AccountDialog open={t === 'account'} onClose={closeModal} id={p.id} />

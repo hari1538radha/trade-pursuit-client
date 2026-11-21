@@ -8,15 +8,17 @@ import { cls, initials, money, usd, kfmt } from '../lib/format.js';
 import { today, dayMonth, shortDate } from '../lib/dates.js';
 import { accountMetrics } from '../lib/firms.js';
 import Modals from '../features/Modals.jsx';
+import DailyNudge from './DailyNudge.jsx';
+import { carBackground } from '../lib/cars.js';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
-  { to: '/premarket', label: 'Pre-market', icon: Sunrise },
   { to: '/journal', label: 'Journal', icon: BookOpen },
+  { to: '/news', label: 'News', icon: Newspaper },
+  { to: '/premarket', label: 'Pre-market', icon: Sunrise },
   { to: '/strategy', label: 'Strategy', icon: Target },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/propfirm', label: 'Propfirm', icon: Building2 },
-  { to: '/news', label: 'News', icon: Newspaper },
   { to: '/community', label: 'Community', icon: Users },
 ];
 
@@ -35,12 +37,15 @@ export function ThemeToggle() {
 }
 
 export default function Layout() {
-  const { user, mode, setMode, openModal, api } = useApp();
+  const { user, mode, setMode, openModal, api, settings } = useApp();
   const loc = useLocation();
   const [deskOpen, setDesk] = useState(true);
   const [railOpen, setRail] = useState(true);
   const mainRef = useRef(null);
   useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [loc.pathname]);
+  // Car background + glass cards on the dashboard only.
+  const car = loc.pathname === '/' ? carBackground(settings.appearance) : null;
+  const glass = Math.min(95, Math.max(10, settings.appearance?.glass ?? 50));
 
   // Global shortcuts: Q = quick log, N = log trade
   useEffect(() => {
@@ -84,10 +89,12 @@ export default function Layout() {
       <div className="body">
         <Desk open={deskOpen} toggle={() => setDesk((o) => !o)} />
         <main className="main">
-          <div className="main-card" ref={mainRef}>
-            <motion.div key={loc.pathname} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease }}>
-              <Outlet />
-            </motion.div>
+          <div className={cls('main-card', car && 'has-car')} ref={mainRef} style={car ? { '--car': `url("${car.src}")`, '--car-pos': car.pos, '--glass': `${glass}%` } : undefined}>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={loc.pathname} initial={{ opacity: 0, y: 18, scale: 0.99, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }} exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }} transition={{ duration: 0.32, ease }} style={{ position: 'relative', zIndex: 1 }}>
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
         <Rail open={railOpen} toggle={() => setRail((o) => !o)} />
@@ -101,6 +108,7 @@ export default function Layout() {
         </span>
       </footer>
       <Modals />
+      <DailyNudge />
       <Toast />
     </div>
   );

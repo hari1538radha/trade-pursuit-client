@@ -1,17 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { User, ListChecks, Tags, ShieldAlert, Scale, Database, Lock, LogOut, X, Plus } from 'lucide-react';
+import { User, ListChecks, Tags, ShieldAlert, Scale, Database, Lock, LogOut, X, Plus, Palette, Check, Upload, Ban } from 'lucide-react';
+import { CARS, DEFAULT_APPEARANCE } from '../lib/cars.js';
+import { compressImage } from '../lib/image.js';
+import { Seg } from '../components/ui.jsx';
 import { useApp } from '../store/AppContext.jsx';
 import { Field, Toggle, ease } from '../components/ui.jsx';
 import { cls, initials } from '../lib/format.js';
 import { toCSV, download } from '../lib/csv.js';
 
-const TABS = [['Profile', User], ['Checklist', ListChecks], ['Tags', Tags], ['Guardrails', ShieldAlert], ['Break-even', Scale], ['Data', Database], ['Security', Lock]];
+const TABS = [['Profile', User], ['Appearance', Palette], ['Checklist', ListChecks], ['Tags', Tags], ['Guardrails', ShieldAlert], ['Break-even', Scale], ['Data', Database], ['Security', Lock]];
 
 export default function Settings({ open, onClose, tab: initial }) {
   const [tab, setTab] = useState(initial || 'Profile');
   const { user, signOut } = useApp();
   useEffect(() => { if (open) setTab(initial || 'Profile'); }, [open, initial]);
+  useEffect(() => {
+    if (!open) return;
+    const k = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [open, onClose]);
   return (
     <AnimatePresence>
       {open && (
@@ -19,7 +28,7 @@ export default function Settings({ open, onClose, tab: initial }) {
           <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.35, ease }}
             style={{ width: 'min(1100px,96vw)', height: 'min(820px,92vh)', background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: 30, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ height: 150, background: 'linear-gradient(180deg,var(--blue) 0%,var(--navy) 55%,var(--panel) 100%)', position: 'relative', flex: 'none' }}>
-              <svg viewBox="0 0 1100 150" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}><path d="M0 110 L140 60 L260 95 L420 35 L560 90 L720 50 L880 100 L1100 40 L1100 150 L0 150Z" fill="#1d1d21" opacity=".8" /><path d="M0 130 L180 95 L330 125 L500 80 L700 120 L900 85 L1100 115 L1100 150 L0 150Z" fill="#151518" /></svg>
+              <svg viewBox="0 0 1100 150" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}><path d="M0 110 L140 60 L260 95 L420 35 L560 90 L720 50 L880 100 L1100 40 L1100 150 L0 150Z" fill="var(--panel)" opacity=".92" /><path d="M0 130 L180 95 L330 125 L500 80 L700 120 L900 85 L1100 115 L1100 150 L0 150Z" fill="#151518" /></svg>
               <button className="close-x" onClick={onClose} style={{ position: 'absolute', top: 18, right: 18 }}><X size={18} /></button>
               <div className="row" style={{ position: 'absolute', left: 30, bottom: -10, gap: 16 }}>
                 <span className="avatar lg">{initials(user.displayName)}</span>
@@ -41,6 +50,7 @@ export default function Settings({ open, onClose, tab: initial }) {
                   <motion.div key={tab} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }}>
                     <h2 style={{ marginTop: 0 }}>{tab}</h2>
                     {tab === 'Profile' && <Profile />}
+                    {tab === 'Appearance' && <Appearance />}
                     {tab === 'Checklist' && <Checklist />}
                     {tab === 'Tags' && <TagsTab />}
                     {tab === 'Guardrails' && <Guardrails />}
@@ -163,6 +173,59 @@ function Security() {
       <b className="neg">Delete account</b>
       <p className="muted" style={{ margin: 0 }}>Permanently deletes your login, trades, accounts and posts.</p>
       <div className="row"><input type="password" className="input" placeholder="Password to confirm" value={del} onChange={(e) => setDel(e.target.value)} /><button className="btn danger" onClick={async () => { try { await api.auth.deleteAccount({ password: del }); signOut(); } catch (e) { notify(e.message); } }}>Delete</button></div>
+    </div>
+  );
+}
+
+function Appearance() {
+  const { user, updateUser, notify, theme, setTheme } = useApp();
+  const a = { ...DEFAULT_APPEARANCE, ...(user.settings?.appearance || {}) };
+  const [glass, setGlass] = useState(a.glass);
+  const [name, setName] = useState(a.customName);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  const save = async (patch, msg) => {
+    try { await updateUser({ settings: { appearance: { ...a, ...patch } } }); if (msg) notify(msg); }
+    catch (e) { notify(e.message); }
+  };
+  const upload = async (file) => {
+    if (!file?.type.startsWith('image/')) return;
+    setBusy(true);
+    try { await save({ car: 'custom', customImage: await compressImage(file, 1920, 0.8), customName: name }, 'Your photo is the dashboard background'); }
+    finally { setBusy(false); }
+  };
+  const Opt = ({ id, children, onClick, empty }) => (
+    <motion.button whileTap={{ scale: 0.97 }} className={cls('car-opt', a.car === id && 'on', empty && 'empty')} onClick={onClick || (() => save({ car: id }))}>
+      {children}
+      {a.car === id && <span className="tick"><Check size={14} /></span>}
+    </motion.button>
+  );
+  return (
+    <div className="col" style={{ gap: 26, maxWidth: 720 }}>
+      <Field label="Theme"><div><Seg options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]} value={theme} onChange={setTheme} /></div></Field>
+      <Field label="Dashboard background" hint="Shown behind the dashboard. Cards turn to glass so the car shows through.">
+        <div className="car-grid">
+          {CARS.map((c) => (
+            <Opt key={c.id} id={c.id}><img src={c.thumb} alt={c.name} /><span className="cap"><b>{c.name}</b><br />{c.sub}</span></Opt>
+          ))}
+          {a.customImage ? (
+            <Opt id="custom"><img src={a.customImage} alt="Your car" /><span className="cap"><b>{a.customName || 'Your car'}</b><br />Your photo</span></Opt>
+          ) : null}
+          <motion.button whileTap={{ scale: 0.97 }} className="car-opt empty" disabled={busy} onClick={() => fileRef.current.click()}>
+            <span className="col" style={{ alignItems: 'center', gap: 6 }}><Upload size={20} /><b style={{ fontSize: 13 }}>{busy ? 'Uploading…' : a.customImage ? 'Replace your photo' : 'Upload your car'}</b><span style={{ fontSize: 11.5 }}>Any car photo</span></span>
+          </motion.button>
+          <Opt id="none" empty><span className="col" style={{ alignItems: 'center', gap: 6 }}><Ban size={20} /><b style={{ fontSize: 13 }}>No background</b></span></Opt>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { upload(e.target.files[0]); e.target.value = ''; }} />
+      </Field>
+      {a.customImage && (
+        <Field label="Your car's name">
+          <div className="row"><input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="Porsche 911 GT3 RS" /><button className="btn" onClick={() => save({ customName: name }, 'Saved')}>Save</button></div>
+        </Field>
+      )}
+      <Field label={`Glass opacity · ${glass}%`} hint="How solid the cards are over the photo. 50% shows half the car through each card.">
+        <input type="range" className="slider" min={15} max={90} step={5} value={glass} onChange={(e) => setGlass(+e.target.value)} onPointerUp={() => save({ glass })} onKeyUp={() => save({ glass })} />
+      </Field>
     </div>
   );
 }

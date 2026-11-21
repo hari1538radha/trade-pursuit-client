@@ -231,6 +231,7 @@ export const demoApi = {
     },
     async remove(pid) { const uid = me().id; db.posts = db.posts.filter((p) => !(p.id === pid && p.user === uid)); save(); return wait({ ok: true }); },
   },
+  markets: { async range() { throw fail(503, 'live prices need the API server'); } },
   firms: async () => firmsCatalog,
 
   /** Create a sample user with ~2 months of realistic trades so every screen has data. */
