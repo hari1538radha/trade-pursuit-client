@@ -2,6 +2,7 @@
 // Same shape as the HTTP API, persisted in localStorage.
 import firmsCatalog from '@shared/firms.json';
 import { setToken, getToken } from './http.js';
+import { fetchNewsDirect } from './news.js';
 import { ymd, addDays, parseYmd } from '../lib/dates.js';
 
 const KEY = 'edgelog.demo.db';
@@ -200,11 +201,7 @@ export const demoApi = {
   /** The preview has no server: try the public feed directly, else show clearly labelled sample events. */
   async news(week = 'thisweek') {
     try {
-      const r = await fetch(`https://nfs.faireconomy.media/ff_calendar_${week}.json`, { signal: AbortSignal.timeout(6000) });
-      if (!r.ok) throw new Error();
-      const rows = await r.json();
-      const imp = { High: 'high', Medium: 'medium', Low: 'low', Holiday: 'holiday' };
-      return { events: rows.map((e) => ({ id: `${e.country}-${e.date}-${e.title}`, title: e.title, currency: e.country, date: new Date(e.date).toISOString(), impact: imp[e.impact] || 'none', forecast: e.forecast || '', previous: e.previous || '', actual: '' })).sort((a, b) => a.date.localeCompare(b.date)), updatedAt: now() };
+      return await fetchNewsDirect(week);
     } catch {
       return { events: sampleNews(week), updatedAt: now(), sample: true };
     }
