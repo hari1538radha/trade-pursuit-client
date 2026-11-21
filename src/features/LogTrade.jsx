@@ -23,7 +23,7 @@ const blank = () => ({
 });
 const NUMS = ['entry', 'exit', 'pnl', 'size', 'plannedRR', 'realizedRR', 'stopLoss', 'target', 'mae', 'mfe'];
 
-export default function LogTrade({ open, onClose, trade }) {
+export default function LogTrade({ open, onClose, trade, tab: startTab }) {
   const { saveTrade, deleteTrade, accounts, settings, updateUser, notify, importTrades, openModal, confirmAsk } = useApp();
   const [tab, setTab] = useState('Advanced');
   const [f, setF] = useState(blank());
@@ -36,8 +36,8 @@ export default function LogTrade({ open, onClose, trade }) {
       const t = { ...blank(), ...trade };
       for (const k of NUMS) t[k] = trade[k] ?? '';
       setF(t); setTab(trade.noTrade ? 'No Trade Day' : 'Advanced');
-    } else { setF({ ...blank(), entryTime: nowTime() }); setTab(localStorage.getItem('edgelog.logtab') || 'Advanced'); }
-  }, [open, trade]);
+    } else { setF({ ...blank(), entryTime: nowTime() }); setTab(startTab || localStorage.getItem('edgelog.logtab') || 'Advanced'); }
+  }, [open, trade, startTab]);
 
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v?.target ? v.target.value : v }));
   const tags = settings.tags || {};

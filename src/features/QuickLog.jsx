@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Zap, ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Zap, ArrowRight, Plus } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Sheet } from '../components/ui.jsx';
 import { cls } from '../lib/format.js';
@@ -8,15 +8,20 @@ import { today, shortDate } from '../lib/dates.js';
 import { ALL_SYMBOLS, categoryOf } from '../lib/assets.js';
 
 const GRADES = ['A+', 'A', 'B', 'C', 'F'];
+/** Last accounts used in Quick Log that still exist and are active. */
+const lastAccounts = (accounts) => {
+  try { const ids = JSON.parse(localStorage.getItem('tp.ql.accounts')) || []; return ids.filter((id) => accounts.some((a) => a.id === id && a.status === 'active')); } catch { return []; }
+};
 const gcls = { 'A+': '', A: 'g-a', B: '', C: 'g-c', F: 'g-f' };
 
 export default function QuickLog({ open, onClose }) {
-  const { saveTrade, notify, settings, openModal, trades } = useApp();
+  const { saveTrade, notify, settings, openModal, trades, accounts } = useApp();
+  const active = accounts.filter((a) => a.status === 'active').sort((a, b) => (a.kind === 'funded' ? -1 : 0) - (b.kind === 'funded' ? -1 : 0));
   const [f, setF] = useState(null);
   const symRef = useRef(null);
   useEffect(() => {
     if (open) {
-      setF({ symbol: '', date: today(), direction: 'long', pnl: '', grade: '', playbook: '' });
+      setF({ symbol: '', date: today(), direction: 'long', pnl: '', grade: '', playbook: '', accounts: lastAccounts(accounts) });
       setTimeout(() => symRef.current?.focus(), 350);
     }
   }, [open]);
@@ -27,7 +32,8 @@ export default function QuickLog({ open, onClose }) {
     const pnl = parseFloat(String(f.pnl).replace(/[$,]/g, ''));
     if (!Number.isFinite(pnl)) return notify('Enter a P&L');
     const symbol = (f.symbol || lastSym).toUpperCase();
-    await saveTrade({ symbol, ...(categoryOf(symbol) && { assetClass: categoryOf(symbol) }), date: f.date, direction: f.direction, pnl, grade: f.grade, playbook: f.playbook || undefined });
+    await saveTrade({ symbol, ...(categoryOf(symbol) && { assetClass: categoryOf(symbol) }), date: f.date, direction: f.direction, pnl, grade: f.grade, playbook: f.playbook || undefined, accounts: f.accounts });
+    localStorage.setItem('tp.ql.accounts', JSON.stringify(f.accounts));
     notify('Trade logged');
     onClose();
   };
@@ -68,6 +74,26 @@ export default function QuickLog({ open, onClose }) {
           <div className="row" style={{ fontSize: 56, fontWeight: 700, gap: 6 }}>
             <span className="dim">$</span>
             <input inputMode="decimal" className="ql-sym" style={{ fontSize: 56, color: parseFloat(f.pnl) < 0 ? 'var(--red)' : parseFloat(f.pnl) > 0 ? 'var(--green)' : undefined }} placeholder="0" value={f.pnl} onChange={(e) => setF({ ...f, pnl: e.target.value.replace(/[^0-9.\-]/g, '') })} />
+          </div>
+        </div>
+        <div className="ql-box" style={{ marginTop: 18 }}>
+          <div className="row between" style={{ marginBottom: 12 }}>
+            <span className="row" style={{ gap: 8 }}><span className="eyebrow">Account</span><span className="dim" style={{ fontSize: 13 }}>funded &amp; evals · remembered for next time</span></span>
+            <button className="muted row" style={{ gap: 4, fontSize: 13 }} onClick={() => openModal('addAccount')}><Plus size={13} /> Add account</button>
+          </div>
+          <div className="row wrap" style={{ gap: 8 }}>
+            <button className={cls('chip', !f.accounts.length && 'on')} onClick={() => setF({ ...f, accounts: [] })}>None</button>
+            {active.map((a) => {
+              const on = f.accounts.includes(a.id);
+              return (
+                <motion.button whileTap={{ scale: 0.95 }} key={a.id} className={cls('chip row', on && 'on')} style={{ gap: 8 }} onClick={() => setF({ ...f, accounts: on ? f.accounts.filter((x) => x !== a.id) : [...f.accounts, a.id] })}>
+                  {a.name}
+                  <span className={cls('tag', !on && (a.kind === 'funded' ? 'green' : 'blue'))} style={{ padding: '2px 7px', fontSize: 11, ...(on && { background: '#ffffff30', color: '#fff' }) }}>{a.kind === 'funded' ? 'Funded' : a.phase || 'Eval'}</span>
+                </motion.button>
+              );
+            })}
+            {active.length > 1 && <button className="chip" onClick={() => setF({ ...f, accounts: active.map((a) => a.id) })}>All {active.length} (copier)</button>}
+            {!active.length && <span className="muted" style={{ fontSize: 13 }}>No accounts yet. Add your funded account to track it here.</span>}
           </div>
         </div>
         <div className="ql-box" style={{ marginTop: 18 }}>

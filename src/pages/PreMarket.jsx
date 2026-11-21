@@ -6,6 +6,7 @@ import { Field, Dialog, Reveal, Empty, ease } from '../components/ui.jsx';
 import { addDays, longDate, shortDate, today, relTime } from '../lib/dates.js';
 import { compressImage } from '../lib/image.js';
 import { ALL_SYMBOLS } from '../lib/assets.js';
+import RangeCheck from '../components/RangeCheck.jsx';
 import { cls, initials } from '../lib/format.js';
 
 const BIASES = [['Bullish', TrendingUp], ['Bearish', TrendingDown], ['Neutral', Minus], ['No bias', CircleSlash]];
@@ -80,6 +81,7 @@ export default function PreMarket() {
 
       <div className="pm-grid" style={{ marginTop: 22, opacity: loading ? 0.5 : 1, transition: 'opacity .2s' }}>
         <div className="col" style={{ gap: 0 }}>
+          {date === today() && <div style={{ marginBottom: 18 }}><RangeCheck compact /></div>}
           <section className="log-section">
             <h4>Bias &amp; focus</h4>
             <Field label="Bias">
@@ -436,7 +438,13 @@ export function PlanView({ plan: p, onClose, onZoom }) {
           {p.bearCase && <div className="card soft" style={{ borderColor: 'var(--red)' }}><div className="eyebrow neg" style={{ marginBottom: 6 }}>Bear case</div><p style={{ margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.bearCase}</p></div>}
         </div>
       )}
-      {rows.length > 0 && <div className="kv">{rows.map(([k, v]) => [<span key={k}>{k}</span>, <span key={k + 'v'} style={{ whiteSpace: 'pre-wrap' }}>{v}</span>])}</div>}
+      {(p.rangeChecks || []).length > 0 && (
+        <div className="card soft" style={{ marginBottom: 14 }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Range checks</div>
+          {p.rangeChecks.map((c, i) => <div key={i} className="mono text2" style={{ fontSize: 12.5, padding: '3px 0' }}>{c.line}</div>)}
+        </div>
+      )}
+            {rows.length > 0 && <div className="kv">{rows.map(([k, v]) => [<span key={k}>{k}</span>, <span key={k + 'v'} style={{ whiteSpace: 'pre-wrap' }}>{v}</span>])}</div>}
       {!rows.length && !p.narrative && !(p.images || []).length && !p.bullCase && !p.bearCase && <Empty title="Empty plan">They shared the day but haven't written anything yet.</Empty>}
     </div>
   );

@@ -82,5 +82,6 @@ export const httpApi = {
     like: (id) => req('POST', `/posts/${id}/like`),
     remove: (id) => req('DELETE', `/posts/${id}`),
   },
+  markets: { range: (symbols) => req('GET', `/markets/range${qs({ symbols: symbols.join(',') })}`) },
   firms: async () => firmsCatalog,
 };
