@@ -18,6 +18,85 @@ export const lakh = (v, d = 2) => {
   return `${s}${Math.round(a)}`;
 };
 const num = (v, d = 2) => (v == null || !Number.isFinite(v) ? '—' : v.toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: d }));
+const LIVE_MS = 3000;
+const MAX_TICKS = 1200; // one hour of 3-second ticks in the chart
+const sec = (iso) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${lakh(Math.abs(n))}`;
+
+/** OI change recorded every 3 seconds: totals, recent windows, a per-tick chart and a CSV export. */
+function LiveDelta({ ticks, live, marketOpen, underlying, expiry, hasDelta }) {
+  const [win, setWin] = useState(100);
+  const last = ticks.at(-1);
+  const sumSince = (ms) => { const from = Date.now() - ms; return ticks.filter((t) => new Date(t.at) >= from).reduce((a, t) => ({ ce: a.ce + t.dCe, pe: a.pe + t.dPe }), { ce: 0, pe: 0 }); };
+  const m1 = sumSince(60000), m5 = sumSince(300000), m15 = sumSince(900000);
+  const data = ticks.slice(-win).map((t) => ({ t: sec(t.at), ce: t.dCe, pe: t.dPe, ceD: t.ceDelta, peD: t.peDelta }));
+  const moves = (last?.d || []).slice().sort((a, b) => Math.abs(b[1]) + Math.abs(b[2]) - Math.abs(a[1]) - Math.abs(a[2])).slice(0, 8);
+  const csv = () => {
+    const rows = [['time', 'spot', 'atm', 'pcr', 'call_oi', 'put_oi', 'd_call_oi', 'd_put_oi', 'atm_call_delta', 'atm_put_delta', 'strikes_changed (strike:dCE:dPE)']]
+      .concat(ticks.map((t) => [new Date(t.at).toISOString(), t.spot || '', t.atm, t.pcr?.toFixed(3), t.ceOI, t.peOI, t.dCe, t.dPe, t.ceDelta ?? '', t.peDelta ?? '', (t.d || []).map((x) => x.join(':')).join(' ')]));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([rows.map((r) => r.join(',')).join('\n')], { type: 'text/csv' }));
+    a.download = `oi-ticks-${underlying}-${expiry}.csv`; a.click();
+  };
+  return (
+    <Reveal className="card" style={{ marginTop: 14 }}>
+      <div className="row between wrap" style={{ gap: 10 }}>
+        <div>
+          <h3 className="row" style={{ margin: 0 }}>{live && <span className="live-dot" />} Live OI delta · every 3s</h3>
+          <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+            {!marketOpen ? 'Market closed. Recording resumes at 9:15 IST while this page is open.' : !ticks.length ? 'Waiting for the second pull…' : `${ticks.length} ticks recorded · last ${sec(last.at)}${last.d?.length ? '' : ' · no change since the previous pull'}`}
+          </div>
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          <Seg options={[{ value: 40, label: '2m' }, { value: 100, label: '5m' }, { value: 300, label: '15m' }, { value: 1200, label: '1h' }]} value={win} onChange={setWin} />
+          <button className="btn sm" onClick={csv} disabled={!ticks.length}>CSV</button>
+        </div>
+      </div>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', marginTop: 14 }}>
+        {[['Last 3s', last ? { ce: last.dCe, pe: last.dPe } : null], ['Last 1 min', m1], ['Last 5 min', m5], ['Last 15 min', m15]].map(([l, v]) => (
+          <div key={l} className="card" style={{ background: 'var(--panel2)', padding: 14 }}>
+            <div className="eyebrow" style={{ fontSize: 10.5 }}>{l}</div>
+            {v ? <div className="mono" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.6 }}><div>CE <b style={{ color: RED }}>{signed(v.ce)}</b></div><div>PE <b style={{ color: GREEN }}>{signed(v.pe)}</b></div></div> : <div className="dim" style={{ marginTop: 8 }}>—</div>}
+          </div>
+        ))}
+        {hasDelta && last?.ceDelta != null && (
+          <div className="card" style={{ background: 'var(--panel2)', padding: 14 }}>
+            <div className="eyebrow" style={{ fontSize: 10.5 }}>ATM delta {last.atm}</div>
+            <div className="mono" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.6 }}><div>CE <b>{last.ceDelta.toFixed(3)}</b></div><div>PE <b>{last.peDelta?.toFixed(3)}</b></div></div>
+          </div>
+        )}
+      </div>
+      {data.length > 1 && (
+        <div style={{ height: 220, marginTop: 14 }}>
+          <ResponsiveContainer>
+            <ComposedChart data={data} barGap={0}>
+              <CartesianGrid strokeDasharray="3 4" vertical={false} />
+              <XAxis dataKey="t" tickLine={false} axisLine={false} minTickGap={40} />
+              <YAxis yAxisId="oi" tickLine={false} axisLine={false} width={60} tickFormatter={(v) => lakh(v, 1)} />
+              {hasDelta && <YAxis yAxisId="d" orientation="right" tickLine={false} axisLine={false} width={40} domain={[-1, 1]} tickFormatter={(v) => v.toFixed(1)} />}
+              <Tooltip formatter={(v, n) => (n.includes('delta') ? (v ?? 0).toFixed(3) : signed(v))} contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: 10 }} />
+              <ReferenceLine yAxisId="oi" y={0} stroke="var(--line2)" />
+              <Bar yAxisId="oi" dataKey="ce" name="Call OI Δ" fill={RED} isAnimationActive={false} />
+              <Bar yAxisId="oi" dataKey="pe" name="Put OI Δ" fill={GREEN} isAnimationActive={false} />
+              {hasDelta && <Line yAxisId="d" dataKey="ceD" name="ATM call delta" stroke="var(--blue)" dot={false} isAnimationActive={false} />}
+              {hasDelta && <Line yAxisId="d" dataKey="peD" name="ATM put delta" stroke="var(--purple)" dot={false} isAnimationActive={false} />}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      {moves.length > 0 && (
+        <div className="row wrap" style={{ gap: 6, marginTop: 10 }}>
+          <span className="muted" style={{ fontSize: 12.5 }}>Moved in the last pull:</span>
+          {moves.map(([k, c, p]) => (
+            <span key={k} className="tag mono" style={{ fontSize: 12 }}><b>{k}</b>{c ? <span style={{ color: RED, marginLeft: 6 }}>CE {signed(c)}</span> : null}{p ? <span style={{ color: GREEN, marginLeft: 6 }}>PE {signed(p)}</span> : null}</span>
+          ))}
+        </div>
+      )}
+      <p className="dim" style={{ fontSize: 12, margin: '10px 0 0' }}>Each tick is the change in open interest since the previous 3-second pull. Sensibull itself may update OI less often than every 3 seconds, so many ticks can read zero. Ticks are saved on the server for 3 days.</p>
+    </Reveal>
+  );
+}
+
 const time = (iso) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 const COLS = {
@@ -60,6 +139,7 @@ export default function Options() {
   const [err, setErr] = useState('');
   const [debug, setDebug] = useState(null);
   const [auto, setAuto] = useState(true);
+  const [ticks, setTicks] = useState([]);
   const [range, setRange] = useState(10);
   const [oiMode, setOiMode] = useState('change');
   const [timeMode, setTimeMode] = useState('oi');
@@ -72,30 +152,42 @@ export default function Options() {
 
   useEffect(() => { localStorage.setItem('tp.oc.under', underlying); localStorage.setItem('tp.oc.expiry', expiry); }, [underlying, expiry]);
 
-  const load = useCallback(async (withHistory = true, wantDebug = false) => {
+  const load = useCallback(async (withHistory = true, wantDebug = false, quiet = false) => {
     if (!ready || !expiry) return;
-    setLoading(true); setErr('');
+    if (!quiet) setLoading(true);
     try {
       const [c, h] = await Promise.all([
         api.options.chain({ cookie: session || 'demo', underlying, expiry, atm: atmSel, debug: wantDebug }),
         withHistory ? api.options.history(underlying, expiry) : null,
       ]);
-      setData(c); if (h) setSnaps(h.snaps); if (c.debug) setDebug(c.debug);
+      setData(c); setErr(''); if (h) setSnaps(h.snaps); if (c.debug) setDebug(c.debug);
+      if (c.tick) setTicks((t) => [...t, c.tick].slice(-MAX_TICKS));
     } catch (e) {
-      if (e.message === 'SENSIBULL_SESSION') { setErr('Your Sensibull session was rejected or has expired. Log in to Sensibull again and paste a fresh cookie.'); setShowSession(true); }
+      if (e.status === 429) { /* a pull was already running; the next one comes in 3s */ }
+      else if (e.message === 'SENSIBULL_SESSION') { setErr('Your Sensibull session was rejected or has expired. Log in to Sensibull again and paste a fresh cookie.'); setShowSession(true); }
       else setErr(e.message);
     }
     setLoading(false);
   }, [api, session, underlying, expiry, atmSel, ready]);
-  useEffect(() => { setData(null); setSnaps([]); load(); }, [underlying, expiry, atmSel, session]); // eslint-disable-line
+  useEffect(() => {
+    setData(null); setSnaps([]); setTicks([]); load();
+    if (ready && expiry) api.options.ticks(underlying, expiry).then((r) => setTicks(r.ticks.slice(-MAX_TICKS))).catch(() => {});
+  }, [underlying, expiry, atmSel, session]); // eslint-disable-line
 
-  // Auto-refresh every 60s while the market is open
+  // Live: pull every 3 seconds while the market is open (next pull starts 3s after the last one finishes)
   const tick = useRef(0);
+  const loadRef = useRef(load); loadRef.current = load;
   useEffect(() => {
     if (!auto || !data?.marketOpen) return;
-    const t = setInterval(() => { tick.current++; load(tick.current % 3 === 0); }, 60000);
-    return () => clearInterval(t);
-  }, [auto, data?.marketOpen, load]);
+    let stop = false, timer;
+    const run = async () => {
+      if (stop) return;
+      if (document.visibilityState === 'visible') { tick.current++; await loadRef.current(tick.current % 60 === 0, false, true); }
+      if (!stop) timer = setTimeout(run, LIVE_MS);
+    };
+    timer = setTimeout(run, LIVE_MS);
+    return () => { stop = true; clearTimeout(timer); };
+  }, [auto, data?.marketOpen, underlying, expiry, atmSel, session]);
 
   useEffect(() => {
     if (q.length < 2) { setFound([]); return; }
@@ -135,7 +227,7 @@ export default function Options() {
           <div className="muted">{underlying} · {expiry} · {data?.at ? `updated ${time(data.at)}` : ready ? 'loading…' : 'add your session to start'} {data && !data.marketOpen && <span className="tag" style={{ marginLeft: 6 }}>Market closed</span>}{demo && <span className="tag" style={{ marginLeft: 6, color: 'var(--gold)' }}>Sample data</span>}</div>
         </div>
         <div className="row wrap" style={{ gap: 8 }}>
-          <span className="row muted" style={{ gap: 6, fontSize: 13 }}>Auto 60s <Toggle on={auto} onChange={setAuto} /></span>
+          <span className="row muted" style={{ gap: 6, fontSize: 13 }}>{auto && data?.marketOpen && <span className="live-dot" />}Live 3s <Toggle on={auto} onChange={setAuto} /></span>
           <button className="btn sm" onClick={() => load()} disabled={loading || !ready}><RefreshCw size={14} className={loading ? 'spin' : ''} /> Refresh</button>
           {!demo && <button className={cls('btn sm', !session && 'primary')} onClick={() => setShowSession((v) => !v)}><KeyRound size={14} /> Sensibull session{session ? ' ✓' : ''}</button>}
         </div>
@@ -153,7 +245,7 @@ export default function Options() {
             <button className="btn primary" onClick={saveSession}>Save</button>
             {session && <button className="btn danger" onClick={clearSession}>Clear</button>}
           </div>
-          <p className="dim row" style={{ fontSize: 12.5, gap: 6, marginBottom: 0 }}><Info size={13} /> This uses Sensibull's internal endpoint, not a public API. It can change without notice, and automated use may be against Sensibull's terms. Refreshes are limited to one every 20 seconds.</p>
+          <p className="dim row" style={{ fontSize: 12.5, gap: 6, marginBottom: 0 }}><Info size={13} /> This uses Sensibull's internal endpoint, not a public API. It can change without notice, and automated use may be against Sensibull's terms. Live mode pulls every 3 seconds while this page is open and the market is open (paused when the tab is hidden). Pulling this often is more likely to get noticed by Sensibull.</p>
         </Reveal>
       )}
 
@@ -211,6 +303,8 @@ export default function Options() {
             <span><span className="muted">Resistance (call OI): </span>{stats.resistance.map((x) => <span key={x.strike} className="tag" style={{ color: RED, marginLeft: 4 }}>{x.strike} · {lakh(x.value)}</span>)}</span>
             <span><span className="muted">Support (put OI): </span>{stats.support.map((x) => <span key={x.strike} className="tag" style={{ color: GREEN, marginLeft: 4 }}>{x.strike} · {lakh(x.value)}</span>)}</span>
           </div>
+
+          <LiveDelta ticks={ticks} live={auto && data?.marketOpen} marketOpen={data?.marketOpen} underlying={underlying} expiry={expiry} hasDelta={has.delta} />
 
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,520px),1fr))', marginTop: 14 }}>
             <Reveal className="card">

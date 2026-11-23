@@ -94,6 +94,7 @@ export const httpApi = {
     // body: { cookie, underlying, expiry, atm, debug }  (cookie = your own Sensibull session)
     chain: (body) => req('POST', '/options/chain', body),
     history: (key, expiry) => req('GET', `/options/history${qs({ key, expiry })}`),
+    ticks: (key, expiry, since) => req('GET', `/options/ticks${qs({ key, expiry, since })}`),
   },
   stocks: {
     status: () => req('GET', '/stocks/status'),

@@ -4,7 +4,8 @@ import firmsCatalog from '@shared/firms.json';
 import { setToken, getToken } from './http.js';
 import { fetchNewsDirect } from './news.js';
 import { ymd, addDays, parseYmd } from '../lib/dates.js';
-import { UNDERLYINGS, normalizeChain, chainStats, marketOpen } from '../lib/market/options.js';
+import { UNDERLYINGS, normalizeChain, chainStats, marketOpen, tickDelta } from '../lib/market/options.js';
+const demoLive = new Map(); const demoTicks = [];
 import { SETUPS, analyze } from '../lib/market/scanner.js';
 import { rawChain, demoHistory, demoStocks } from '../lib/market/demo.js';
 
@@ -258,9 +259,30 @@ export const demoApi = {
     async chain({ underlying, expiry }) {
       me();
       const stock = !UNDERLYINGS[underlying] ? demoStocks().results.find((x) => x.symbol === underlying) : null;
-      const chain = normalizeChain(rawChain(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, 1, stock?.close).rows);
-      return wait({ chain, stats: chainStats(chain), has: { ltp: true, iv: true, delta: true, theta: true, gamma: true, vega: true, volume: true }, marketOpen: marketOpen(), at: new Date().toISOString() });
+      const k = `${underlying}|${expiry}`;
+      const prev = demoLive.get(k);
+      let chain = normalizeChain(rawChain(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, 1, stock?.close).rows);
+      // Sample data: drift OI a little on every pull so the 3-second deltas move
+      if (prev) {
+        const by = new Map(prev.chain.map((r) => [r.strike, r]));
+        chain = chain.map((r) => {
+          const p = by.get(r.strike); if (!p) return r;
+          const j = (oi, ch) => Math.max(0, Math.round(oi + (Math.random() < 0.35 ? (Math.random() - 0.45) * oi * 0.004 : 0) + ch));
+          const ce = j(p.ce.oi, 0), pe = j(p.pe.oi, 0);
+          return { ...r, ce: { ...r.ce, oi: ce, chgOi: ce - r.ce.prevOi }, pe: { ...r.pe, oi: pe, chgOi: pe - r.pe.prevOi } };
+        });
+      }
+      const stats = chainStats(chain);
+      let tick = null;
+      if (prev) {
+        const d = tickDelta(prev.chain, chain, stats.atm);
+        tick = { at: new Date().toISOString(), spot: stats.spot, atm: stats.atm, pcr: stats.pcr, ceOI: stats.ceOI, peOI: stats.peOI, dCe: d.dCe, dPe: d.dPe, ceDelta: d.ceDelta, peDelta: d.peDelta, d: d.strikes };
+        demoTicks.push({ k, ...tick }); if (demoTicks.length > 3000) demoTicks.shift();
+      }
+      demoLive.set(k, { chain });
+      return wait({ chain, stats, has: { ltp: true, iv: true, delta: true, theta: true, gamma: true, vega: true, volume: true }, marketOpen: marketOpen(), at: new Date().toISOString(), tick });
     },
+    async ticks(underlying, expiry) { return wait({ ticks: demoTicks.filter((t) => t.k === `${underlying}|${expiry}`).map(({ k, ...t }) => t) }); },
     async history(underlying, expiry) {
       const stock = !UNDERLYINGS[underlying] ? demoStocks().results.find((x) => x.symbol === underlying) : null;
       return wait({ snaps: demoHistory(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, stock?.close) });

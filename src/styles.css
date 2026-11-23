@@ -455,3 +455,6 @@ table.oc tr.atm .strike{background:color-mix(in srgb,var(--purple) 22%,var(--pan
 .dropdown button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
 @keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}
 @media (max-width:1000px){.nudge{right:12px;bottom:330px}}
+
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 var(--green);animation:livePulse 1.6s infinite;display:inline-block;margin-right:6px}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 60%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
