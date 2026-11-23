@@ -6,6 +6,37 @@ import { fetchNewsDirect } from './news.js';
 import { ymd, addDays, parseYmd } from '../lib/dates.js';
 import { UNDERLYINGS, normalizeChain, chainStats, marketOpen, tickDelta } from '../lib/market/options.js';
 const demoLive = new Map(); const demoTicks = [];
+const pkey = (kind) => ({ 'money/entries': 'entries', 'money/emis': 'emis', 'props/purchases': 'purchases', 'props/payouts': 'payouts' }[kind] || kind);
+/** Preview only: a month of sample expenses/income, two EMIs and 3 weeks of lifestyle logs for the admin */
+function seedPersonal() {
+  db.personal ||= {};
+  const u = db.users.find((x) => x.id === getToken());
+  if (!u || u.role !== 'admin' || db.personal.seeded === u.id) return;
+  db.personal.seeded = u.id;
+  let s = 5; const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const day = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const E = (db.personal.entries ||= []);
+  for (let n = 0; n < 75; n++) {
+    if (r() < 0.75) E.push({ id: id(), user: u.id, kind: 'expense', date: day(n), amount: Math.round(120 + r() * 380), category: 'Food', method: 'UPI', note: '' });
+    if (n % 4 === 0) E.push({ id: id(), user: u.id, kind: 'expense', date: day(n), amount: Math.round(400 + r() * 300), category: 'Petrol', method: 'Card', note: '' });
+    if (n % 11 === 3) E.push({ id: id(), user: u.id, kind: 'expense', date: day(n), amount: Math.round(800 + r() * 2200), category: 'Shopping', method: 'Card', note: '' });
+  }
+  for (const n of [5, 35, 65]) {
+    E.push({ id: id(), user: u.id, kind: 'expense', date: day(n), amount: 7800 + Math.round(r() * 3000), category: 'Card bill', method: 'Bank', note: 'Credit card statement' });
+    E.push({ id: id(), user: u.id, kind: 'expense', date: day(n + 2), amount: 1499, category: 'Bills', method: 'UPI', note: 'Phone + internet' });
+    E.push({ id: id(), user: u.id, kind: 'income', date: day(n + 1), amount: 25000, category: 'Salary', method: 'Bank', note: 'Sample income' });
+  }
+  const ymNow = new Date(); const ymS = (k) => { const d = new Date(ymNow.getFullYear(), ymNow.getMonth() - k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+  db.personal.emis ||= [];
+  db.personal.emis.push({ id: id(), user: u.id, name: 'Bike loan', lender: 'Sample bank', amount: 3450, dueDay: 5, start: ymS(9), months: 24, paid: [9, 8, 7, 6, 5, 4, 3, 2, 1].map(ymS), note: '' });
+  db.personal.emis.push({ id: id(), user: u.id, name: 'Phone EMI', lender: 'Card EMI', amount: 2100, dueDay: 12, start: ymS(4), months: 12, paid: [4, 3, 2, 1].map(ymS), note: '' });
+  db.personal.days ||= [];
+  for (let n = 21; n >= 1; n--) {
+    db.personal.days.push({ id: id(), user: u.id, date: day(n), habits: { wake: r() > 0.25, gym: r() > 0.4, read: r() > 0.5, journal: r() > 0.3, nojunk: r() > 0.35 }, sleep: +(5.5 + r() * 3).toFixed(1), workout: r() > 0.4 ? Math.round(30 + r() * 40) : 0, steps: Math.round(4000 + r() * 7000), water: +(1.5 + r() * 2).toFixed(1), meditation: r() > 0.5 ? 10 : 0, screen: +(2 + r() * 4).toFixed(1), mood: 2 + Math.round(r() * 3), energy: 2 + Math.round(r() * 3), weight: +(78.4 - (21 - n) * 0.06 + (r() - 0.5) * 0.5).toFixed(1), calories: Math.round(1900 + r() * 700), protein: Math.round(80 + r() * 60), junk: r() > 0.7, meals: { breakfast: 'Oats, eggs', lunch: 'Rice, dal, chicken', dinner: 'Chapati, paneer', snacks: r() > 0.7 ? 'Chips' : 'Fruit' } });
+  }
+  u.settings.life ||= { habits: [{ id: 'wake', name: 'Wake up by 6:30' }, { id: 'gym', name: 'Workout' }, { id: 'read', name: 'Read 20 min' }, { id: 'journal', name: 'Journal every trade' }, { id: 'nojunk', name: 'No junk food' }], targets: { sleep: 7.5, workout: 45, steps: 8000, water: 3, calories: 2200, protein: 130, screen: 3 }, weightGoal: 74, dietPlan: { breakfast: 'Oats + 3 eggs', lunch: 'Rice, dal, chicken/paneer, salad', dinner: '2 chapati, sabzi, curd', snacks: 'Fruit, nuts, buttermilk', rules: 'No sugar drinks. Last meal by 9 PM.' } };
+  save();
+}
 const demoRecs = () => { try { return JSON.parse(localStorage.getItem('tp.demo.rec')) || []; } catch { return []; } };
 const packChain = (chain) => chain.map((r) => [r.strike, r.ce.oi, r.pe.oi, r.ce.prevOi, r.pe.prevOi]);
 function driftChain(prevChain, base, strength = 1) {
@@ -272,6 +303,31 @@ export const demoApi = {
       save(); return wait({ liked: !liked, likes: p.likes.length });
     },
     async remove(pid) { const uid = me().id; db.posts = db.posts.filter((p) => !(p.id === pid && p.user === uid)); save(); return wait({ ok: true }); },
+  },
+  // Admin's own tracking (sample data in the preview)
+  personal: {
+    async list(kind, q = {}) { me(); const k = pkey(kind); seedPersonal(); return wait({ items: (db.personal[k] || []).filter((x) => x.user === me().id && (!q.from || x.date >= q.from) && (!q.to || x.date <= q.to)).sort((a, b) => (b.date || b.start || '').localeCompare(a.date || a.start || '')) }); },
+    async create(kind, b) { const k = pkey(kind); const it = { id: id(), user: me().id, ...b }; (db.personal[k] ||= []).push(it); save(); return wait({ item: it }); },
+    async update(kind, iid, b) { const it = (db.personal[pkey(kind)] || []).find((x) => x.id === iid && x.user === me().id); if (!it) throw fail(404, 'Not found'); Object.assign(it, b); save(); return wait({ item: it }); },
+    async remove(kind, iid) { const k = pkey(kind); db.personal[k] = (db.personal[k] || []).filter((x) => !(x.id === iid && x.user === me().id)); save(); return wait({ ok: true }); },
+    async importProps({ purchases = [], payouts = [] }) {
+      const uid = me().id; db.personal.purchases ||= []; db.personal.payouts ||= [];
+      const key = (x, a) => `${x.date}|${x.firm}|${a}`;
+      const have = new Map(); db.personal.purchases.filter((x) => x.user === uid).forEach((p) => have.set(key(p, p.fee), (have.get(key(p, p.fee)) || 0) + 1));
+      const seen = new Map(); let a = 0, b = 0;
+      for (const p of purchases) { const k = key(p, p.fee); seen.set(k, (seen.get(k) || 0) + 1); if (seen.get(k) > (have.get(k) || 0)) { db.personal.purchases.push({ id: id(), user: uid, ...p }); a++; } }
+      const hp = new Set(db.personal.payouts.filter((x) => x.user === uid).map((p) => key(p, p.net)));
+      for (const p of payouts) if (!hp.has(key(p, p.net))) { db.personal.payouts.push({ id: id(), user: uid, ...p }); b++; }
+      save(); return wait({ purchases: a, payouts: b, skipped: purchases.length + payouts.length - a - b });
+    },
+    async days(from) { me(); seedPersonal(); return wait({ items: (db.personal.days || []).filter((x) => x.user === me().id && (!from || x.date >= from)).sort((a, b) => b.date.localeCompare(a.date)) }); },
+    async saveDay(date, b) {
+      db.personal.days ||= [];
+      let d = db.personal.days.find((x) => x.user === me().id && x.date === date);
+      if (!d) { d = { id: id(), user: me().id, date, habits: {}, meals: {} }; db.personal.days.push(d); }
+      for (const [k, v] of Object.entries(b)) { if (k === 'habits' || k === 'meals') d[k] = { ...(d[k] || {}), ...v }; else d[k] = v; }
+      save(); return wait({ item: d });
+    },
   },
   admin: {
     async users() {

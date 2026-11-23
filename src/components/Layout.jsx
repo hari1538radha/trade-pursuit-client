@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Users, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Users, HandCoins, Wallet, HeartPulse, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Logo, Seg, Toggle, Money, Dialog, Field, Toast, SymbolIcon, ease } from './ui.jsx';
 import { cls, initials, money, usd, kfmt } from '../lib/format.js';
@@ -24,6 +24,9 @@ const NAV = [
   { to: '/goldbach', label: 'Goldbach', icon: Gem, admin: true },
   { to: '/notes', label: 'Notes', icon: NotebookPen, admin: true },
   { to: '/quiz', label: 'Quiz', icon: GraduationCap, admin: true },
+  { to: '/payouts', label: 'Payouts', icon: HandCoins, admin: true },
+  { to: '/money', label: 'Money', icon: Wallet, admin: true },
+  { to: '/lifestyle', label: 'Lifestyle', icon: HeartPulse, admin: true },
   { to: '/traders', label: 'Traders', icon: Users, admin: true },
 ];
 
@@ -48,8 +51,8 @@ export default function Layout() {
   const [railOpen, setRail] = useState(true);
   const mainRef = useRef(null);
   // Data-heavy pages use the whole screen: no desk on the left, no rail on the right
-  const wide = /^\/(options|stocks|goldbach|traders)(\/|$)/.test(loc.pathname);
-  useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [loc.pathname]);
+  const wide = /^\/(options|stocks|goldbach|traders|payouts|money|lifestyle)(\/|$)/.test(loc.pathname);
+  useEffect(() => { mainRef.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
 
   // Global shortcuts: Q = quick log, N = log trade
   useEffect(() => {
@@ -81,11 +84,11 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        {isAdmin && <NavLink to="/calm" className={({ isActive }) => cls('btn sm', isActive && 'primary')} title="Mind Calm"><Leaf size={15} /> Calm</NavLink>}
-        <button className="btn sm" onClick={() => openModal('quick')} title="Quick log (Q)"><Plus size={15} /> Quick log</button>
+        {isAdmin && <NavLink to="/calm" className={({ isActive }) => cls('btn sm top-calm', isActive && 'primary')} title="Mind Calm"><Leaf size={15} /> Calm</NavLink>}
+        <button className="btn sm top-quick" onClick={() => openModal('quick')} title="Quick log (Q)"><Plus size={15} /> Quick log</button>
         <ThemeToggle />
-        <button className="icon-btn" onClick={() => openModal('settings')} title="Settings"><Settings size={18} /></button>
-        <button className="row" onClick={() => openModal('settings')} style={{ gap: 10 }}>
+        <button className="icon-btn top-settings" onClick={() => openModal('settings')} title="Settings"><Settings size={18} /></button>
+        <button className="row" onClick={() => openModal('settings')} style={{ gap: 10 }} aria-label="Settings and profile">
           <span className="uname" style={{ fontWeight: 600 }}>{user.displayName}</span>
           <span className="avatar">{initials(user.displayName)}</span>
         </button>
@@ -113,11 +116,63 @@ export default function Layout() {
           {api.demo ? <span>Preview mode · data stays in this browser</span> : <span>{user.username}</span>}
         </span>
       </footer>
+      <TabBar />
       <Modals />
       <DailyNudge />
       <CoachDock />
       <Toast />
     </div>
+  );
+}
+
+/**
+ * Phones and iPads (up to 1024px): bottom tab bar instead of the top links.
+ * Home, Journal, quick log (+), Analytics and More (every other page, Live/Paper, report, settings).
+ */
+function TabBar() {
+  const { isAdmin, openModal, mode, setMode } = useApp();
+  const loc = useLocation();
+  const [more, setMore] = useState(false);
+  useEffect(() => { setMore(false); }, [loc.pathname]);
+  const main = [NAV[0], NAV.find((n) => n.to === '/journal')];
+  const after = [NAV.find((n) => n.to === '/analytics')];
+  const rest = NAV.filter((n) => (isAdmin || !n.admin) && !['/', '/journal', '/analytics'].includes(n.to));
+  if (isAdmin) rest.push({ to: '/calm', label: 'Calm', icon: Leaf });
+  const inMore = rest.some((n) => loc.pathname === n.to || loc.pathname.startsWith(`${n.to}/`));
+  const Tab = ({ to, label, icon: I, end }) => (
+    <NavLink to={to} end={end} title={label} className={({ isActive }) => cls('tab', isActive && 'active')}><I size={21} /><span>{label === 'Dashboard' ? 'Home' : label}</span></NavLink>
+  );
+  return (
+    <>
+      <nav className="tabbar" aria-label="Main">
+        {main.map((n) => <Tab key={n.to} {...n} />)}
+        <button className="tab-plus" onClick={() => openModal('quick')} aria-label="Quick log a trade"><Plus size={26} /></button>
+        {after.map((n) => <Tab key={n.to} {...n} />)}
+        <button className={cls('tab more-btn', (more || inMore) && 'active')} onClick={() => setMore((v) => !v)} aria-expanded={more}><SlidersHorizontal size={21} /><span>More</span></button>
+      </nav>
+      <AnimatePresence>
+        {more && (
+          <motion.div className="overlay more-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMore(false)}>
+            <motion.div className="more-sheet" initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }} onClick={(e) => e.stopPropagation()}>
+              <div className="sheet-grab" />
+              <div className="more-grid">
+                {rest.map(({ to, label, icon: I }) => (
+                  <NavLink key={to} to={to} title={label} className={({ isActive }) => cls('more-item', isActive && 'active')}><I size={22} /><span>{label}</span></NavLink>
+                ))}
+              </div>
+              <div className="more-row">
+                <Seg options={[{ value: 'live', label: 'Live money' }, { value: 'paper', label: 'Paper money' }]} value={mode} onChange={setMode} />
+              </div>
+              <div className="more-row" style={{ gap: 8 }}>
+                <button className="btn grow" onClick={() => { setMore(false); openModal('log'); }}><Plus size={15} /> Full trade log</button>
+                <button className="btn grow" onClick={() => { setMore(false); openModal('report'); }}><FileDown size={15} /> Report</button>
+                <button className="btn" onClick={() => { setMore(false); openModal('settings'); }} aria-label="Settings"><Settings size={16} /></button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

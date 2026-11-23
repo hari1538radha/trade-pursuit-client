@@ -45,7 +45,7 @@ export default function Journal() {
       </div>
 
       <div className="row between" style={{ margin: '26px 0 12px' }}><span className="eyebrow">Performance</span><button className="btn sm" onClick={toggleHide}>{hidePnl ? <EyeOff size={14} /> : <Eye size={14} />} Hide P&amp;L</button></div>
-      <div className="grid" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
+      <div className="grid rg-2s" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
         <Reveal className="card stat"><div className="label">Total P&amp;L</div><div className="val" style={{ fontSize: 46 }}><Money value={s.total} animated /></div><div className="foot">{s.wins}W / {s.losses}L</div></Reveal>
         <Reveal delay={0.04} className="card stat"><div className="label">Win Rate</div><div className="val">{s.winRate.toFixed(1)}%</div><div className="foot">{s.count} total trades</div></Reveal>
         <Reveal delay={0.08} className="card stat"><div className="label">Avg Win RR</div><div className="val">{s.avgWinRR != null ? `${s.avgWinRR.toFixed(2)}R` : '—'}</div><div className="foot">Profit Factor {Number.isFinite(s.profitFactor) ? s.profitFactor.toFixed(2) : '∞'}</div></Reveal>
@@ -86,7 +86,7 @@ export default function Journal() {
           groups.map(([date, ts]) => (
             <div key={date}>
               <div className="day-h">{longDate(date)} <span className="dim" style={{ fontSize: 13 }}>{ts.length} {ts.length > 1 ? 'trades' : 'trade'}</span><span className="ln" /><Money value={ts.reduce((a, t) => a + (t.pnl || 0), 0)} /></div>
-              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(440px,1fr))' }}>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,440px),1fr))' }}>
                 <AnimatePresence>{ts.map((t, i) => <TradeCard key={t.id} t={t} i={i} />)}</AnimatePresence>
               </div>
             </div>

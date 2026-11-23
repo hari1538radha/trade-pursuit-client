@@ -192,7 +192,7 @@ export default function LogTrade({ open, onClose, trade, tab: startTab }) {
               )}
             </motion.div>
           </AnimatePresence>
-          <div className="row" style={{ position: 'sticky', bottom: 0, padding: '14px 0', background: 'var(--sheet)', borderTop: '1px solid var(--line)', gap: 10, zIndex: 3 }}>
+          <div className="row sheet-foot" style={{ position: 'sticky', bottom: 0, padding: '14px 0', background: 'var(--sheet)', borderTop: '1px solid var(--line)', gap: 10, zIndex: 3 }}>
             {trade && <button className="btn danger" onClick={async () => { if (await confirmAsk('Delete this trade?')) { await deleteTrade(trade.id); notify('Trade deleted'); onClose(); } }}><Trash2 size={15} /> Delete</button>}
             <button className="btn primary grow" style={{ height: 52, fontSize: 16 }} disabled={saving} onClick={save}><Check size={17} /> {trade ? 'Save changes' : 'Log trade'}</button>
           </div>

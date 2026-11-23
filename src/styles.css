@@ -500,3 +500,137 @@ table.tr-tbl tr.click{cursor:pointer}
 table.tr-tbl tr.click:hover td{background:var(--hover)}
 table.tr-tbl tr.tr-open td{background:var(--panel2);white-space:normal}
 @media (max-width:1800px){.navlinks.many .navlink:not(.active) .lbl{display:none}.navlinks.many .navlink{padding:8px 9px}}
+
+/* =====================================================================
+   Phones and iPads
+   ≤1024px: bottom tab bar, compact top bar, natural page scrolling
+   ≤640px : phone layout (single column, full-screen sheets)
+   ===================================================================== */
+.tabbar,.more-overlay{display:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:1024px){
+  .shell{height:auto;min-height:100dvh;overflow:visible;grid-template-rows:auto auto 1fr}
+  .topnav{position:sticky;top:0;z-index:30;height:56px;gap:8px;padding:0 12px;padding-top:env(safe-area-inset-top);box-sizing:content-box;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:color-mix(in srgb,var(--bg) 88%,transparent)}
+  .topnav .navlinks,.topnav .top-quick,.topnav .top-calm,.topnav .top-settings,.topnav .uname{display:none}
+  .topnav .brand{flex:1;margin:0 4px;font-size:17px}
+  .body,.body.wide{display:block}
+  .main,.body.wide .main{padding:0;display:block;overflow:visible}
+  .main-card{border:0;border-radius:0;overflow:visible;background:transparent}
+  .footer{display:none}
+  .page{padding:20px 22px calc(110px + env(safe-area-inset-bottom))}
+  .wk-ticker{height:32px;font-size:13px;padding:0 12px}
+
+  /* Bottom tab bar */
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:45;align-items:stretch;justify-content:space-around;
+    height:62px;padding:0 6px env(safe-area-inset-bottom);box-sizing:content-box;
+    background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--line2)}
+  .tab{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600;border-radius:12px;-webkit-tap-highlight-color:transparent}
+  .tab.active{color:var(--blue)}
+  .tab-plus{align-self:center;width:52px;height:52px;margin:0 6px;border-radius:18px;display:grid;place-items:center;color:#fff;background:var(--blue);box-shadow:0 8px 22px -8px var(--blue);flex:none;-webkit-tap-highlight-color:transparent}
+  .tab-plus:active{transform:scale(.95)}
+
+  /* More sheet */
+  .more-overlay{display:flex;align-items:flex-end;z-index:44}
+  .more-sheet{width:100%;max-width:640px;background:var(--sheet);border:1px solid var(--line2);border-bottom:0;border-radius:24px 24px 0 0;padding:10px 16px calc(84px + env(safe-area-inset-bottom));box-shadow:var(--shadow)}
+  .sheet-grab{width:40px;height:4px;border-radius:2px;background:var(--line2);margin:0 auto 14px}
+  .more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .more-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px;border-radius:14px;background:var(--panel2);color:var(--text2);font-size:12.5px;font-weight:600;text-align:center}
+  .more-item.active{background:var(--blue-soft);color:var(--blue)}
+  .more-row{display:flex;justify-content:center;margin-top:14px}
+  .more-row .seg{width:100%}
+  .more-row .seg button{flex:1}
+
+  /* Floating panels sit above the tab bar */
+  .coach{right:12px;left:auto;width:min(380px,calc(100vw - 24px));bottom:calc(74px + env(safe-area-inset-bottom))}
+  .coach-body{max-height:min(52vh,420px)}
+  .nudge{left:12px;right:12px;width:auto;max-width:520px;margin:0 auto;bottom:calc(128px + env(safe-area-inset-bottom))}
+  .coach-nudge{bottom:calc(128px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+}
+@media (max-width:640px){
+  .page{padding:16px 14px calc(110px + env(safe-area-inset-bottom))}
+  .topnav .chip-top{display:none}
+  .wk-label .wk-label-text{display:none}
+  .more-grid{grid-template-columns:repeat(3,1fr)}
+  /* Collapsed coach: a compact pill */
+  .coach{width:auto;max-width:calc(100vw - 24px)}
+  .coach:has(.coach-tabs){width:calc(100vw - 24px)}
+  .nudge{padding:14px}
+  .nudge .bell{display:none}
+  /* Sheets and dialogs take the whole screen / slide up from the bottom */
+  .overlay .sheet{height:100dvh;border-radius:0;border:0}
+  .overlay.center{align-items:flex-end}
+  .dialog{width:100%;max-width:100%;max-height:92dvh;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))}
+  h1{font-size:23px!important}
+}
+
+/* Fixed-column grids collapse on small screens (inline styles need !important) */
+@media (max-width:1024px){
+  .rg-1-tab{grid-template-columns:1fr!important}
+}
+@media (max-width:640px){
+  .rg-1{grid-template-columns:1fr!important}
+  .rg-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .rg-2s{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .rg-2s>:first-child{grid-column:1/-1}
+  .settings-grid{grid-template-columns:1fr!important;grid-template-rows:auto 1fr;margin-top:34px!important}
+  .settings-grid>nav{display:flex;gap:4px;overflow-x:auto;padding:6px 12px!important;scrollbar-width:none}
+  .settings-grid>nav>button{width:auto!important;flex:none;white-space:nowrap}
+  .settings-grid>div{padding:10px 16px 28px!important}
+}
+/* Anything inside a page may shrink below its content width */
+.page .grid>*,.page .row>*{min-width:0}
+@media (max-width:640px){
+  /* Compact daily reminder */
+  .nudge p{display:none}
+  .nudge .row{margin-top:8px!important}
+  .nudge b{font-size:14.5px!important}
+  /* Stat tiles two per row */
+  .page .grid:has(>.stat){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+  .page .stat{padding:13px!important}
+  .page .stat .val{font-size:clamp(17px,5.4vw,24px)!important;word-break:break-word}
+  .page .stat .foot{font-size:11.5px!important}
+  /* Toggle groups scroll sideways instead of being cut */
+  .page .seg{max-width:100%}
+  .page>.row.between>div:first-child{min-width:0}
+}
+
+/* Admin personal pages: Money, Payouts, Lifestyle */
+.month-pick{gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px}
+.money-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:center;margin-top:10px}
+@media (max-width:640px){.money-split{grid-template-columns:1fr}}
+.emi-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.emi-bar{height:6px;border-radius:3px;background:var(--line);margin-top:10px;overflow:hidden}
+.emi-bar i{display:block;height:100%;background:var(--blue);border-radius:3px}
+.habit-row{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:14.5px;color:var(--text);transition:border-color .15s,background .15s}
+.habit-row.on{border-color:color-mix(in srgb,var(--green) 55%,transparent);background:color-mix(in srgb,var(--green) 10%,var(--panel2))}
+.habit-check{width:22px;height:22px;border-radius:7px;border:2px solid var(--line2);display:grid;place-items:center;flex:none;color:#fff}
+.habit-row.on .habit-check{background:var(--green);border-color:var(--green)}
+.life-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;margin-top:10px}
+.habit-grid{border-collapse:separate;border-spacing:3px;font-size:11px}
+.habit-grid th{color:var(--text2);font-weight:500;text-align:center;min-width:16px}
+.habit-grid .hg-name{white-space:nowrap;padding-right:8px;font-size:12.5px;color:var(--text2);position:sticky;left:0;background:var(--panel)}
+.hg-cell{display:block;width:16px;height:16px;border-radius:4px;background:var(--line)}
+.hg-cell.on{background:var(--green)}
+.hg-cell.off{background:color-mix(in srgb,var(--red) 45%,var(--line))}
+@media (max-width:900px){
+  .rg-2s{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .rg-2s>:first-child{grid-column:1/-1}
+}
+@media (max-width:420px){
+  .page .card.row,.trade-card>.row,.trade-card .row.between{flex-wrap:wrap}
+  .page .stat .val{font-size:clamp(16px,5.2vw,22px)!important}
+}
+@media (max-width:1024px){
+  .more-overlay{z-index:62}
+  .sheet-foot{z-index:20!important;padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}
+}
+/* Sticky sheet footers sit flush with the bottom edge (sticky stops at the scroll padding) */
+.sheet-body:has(.sheet-foot){padding-bottom:0}
+.more-sheet{padding-bottom:calc(20px + env(safe-area-inset-bottom))!important}
+@media (max-width:640px){
+  .sheet-head{padding:14px 16px 6px}
+  .sheet-head h1{font-size:26px}
+  .sheet-body{padding:10px 16px 28px}
+  .sheet .log-grid,.sheet .log-grid>*{min-width:0}
+}

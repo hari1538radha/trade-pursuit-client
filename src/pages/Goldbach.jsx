@@ -9,16 +9,18 @@ const ZONE_COLOR = { premium: '#f0616d', discount: '#2fbf8f', eq: '#a78bfa', edg
 const KEY_COLOR = { rb: '#f59e0b', ob: '#3b82f6', fvg: '#a78bfa', lv: '#94a3b8', br: '#ec4899', mb: '#14b8a6', eq: '#a78bfa', high: 'var(--text)', low: 'var(--text)' };
 
 /** Candles + labelled Goldbach lines, drawn as SVG so every label stays readable */
-function LevelChart({ candles, gb, outer, price, digits, height = 560 }) {
+function LevelChart({ candles, gb, outer, price, digits, height: hProp = 560 }) {
   const wrap = useRef(null);
   const [w, setW] = useState(900);
+  const height = w < 640 ? 420 : hProp;
   useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setW(Math.max(420, e.contentRect.width)));
+    const ro = new ResizeObserver(([e]) => setW(Math.max(280, e.contentRect.width)));
     if (wrap.current) ro.observe(wrap.current);
     return () => ro.disconnect();
   }, []);
-  const padR = 220, padL = 12, padT = 14, padB = 30;
-  const shown = candles.slice(-Math.max(40, Math.floor((w - padR) / 7)));
+  const small = w < 640;
+  const padR = small ? 132 : 220, padL = small ? 4 : 12, padT = 14, padB = 30;
+  const shown = candles.slice(-Math.max(small ? 30 : 40, Math.floor((w - padR) / (small ? 5 : 7))));
   // Keep the dealing range filling the chart so every level is readable; price far outside is clipped
   const span = gb.high - gb.low;
   const y0 = Math.max(gb.low - span * 0.35, Math.min(...shown.map((c) => c.l)) - span * 0.03);
@@ -60,14 +62,14 @@ function LevelChart({ candles, gb, outer, price, digits, height = 560 }) {
         {price != null && (
           <g>
             <line x1={padL} x2={w - padR} y1={Y(price)} y2={Y(price)} stroke="var(--text)" strokeWidth={1} strokeDasharray="2 3" />
-            <rect x={w - padR + 4} y={Y(price) - 10} width={88} height={20} rx={5} fill="var(--text)" />
-            <text x={w - padR + 48} y={Y(price) + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--bg)">{fmt(price)}</text>
+            <rect x={small ? w - padR - 72 : w - padR + 4} y={Y(price) - 10} width={small ? 70 : 88} height={20} rx={5} fill="var(--text)" />
+            <text x={small ? w - padR - 37 : w - padR + 48} y={Y(price) + 4} textAnchor="middle" fontSize={small ? 11 : 12} fontWeight="700" fill="var(--bg)">{fmt(price)}</text>
           </g>
         )}
         {labels.map((l) => (
           <g key={'l' + l.p}>
-            <line x1={w - padR} x2={w - padR + 96} y1={Y(l.price)} y2={l.ly} stroke={KEY_COLOR[l.key]} opacity={0.4} />
-            <text x={w - padR + 98} y={l.ly + 4} fontSize="12.5" fill={KEY_COLOR[l.key]} fontWeight={l.key === 'ob' || l.key === 'rb' || l.key === 'eq' ? 700 : 500}>{l.short} · {fmt(l.price)}</text>
+            <line x1={w - padR} x2={w - padR + (small ? 16 : 96)} y1={Y(l.price)} y2={l.ly} stroke={KEY_COLOR[l.key]} opacity={0.4} />
+            <text x={w - padR + (small ? 18 : 98)} y={l.ly + 4} fontSize={small ? 11 : 12.5} fill={KEY_COLOR[l.key]} fontWeight={l.key === 'ob' || l.key === 'rb' || l.key === 'eq' ? 700 : 500}>{l.short} · {fmt(l.price)}</text>
           </g>
         ))}
         {t0 && <text x={padL} y={height - 8} fontSize="11.5" fill="var(--text2)">{day(t0)}</text>}

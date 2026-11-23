@@ -27,7 +27,7 @@ export default function Propfirm() {
       </div>
 
       {accounts.length > 0 && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(5,1fr)', marginTop: 22 }}>
+        <div className="grid rg-2" style={{ gridTemplateColumns: 'repeat(5,1fr)', marginTop: 22 }}>
           {[['Active', stats.active], ['Passed', stats.passed], ['Failed', stats.failed], ['Spent on evals', usd(stats.spent)], ['Payouts', <span key="p" className="pos">{usd(stats.payouts)}</span>]].map(([l, v], i) => (
             <Reveal key={l} delay={i * 0.04} className="card stat"><div className="label">{l}</div><div className="val" style={{ fontSize: 28 }}>{v}</div></Reveal>
           ))}
@@ -38,7 +38,7 @@ export default function Propfirm() {
         {tab === 'Accounts' ? (
           <motion.div key="acc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {stats.active > 0 && (
-              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', marginTop: 18 }}>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,320px),1fr))', marginTop: 18 }}>
                 {accounts.filter((a) => a.status === 'active').map((a, i) => <AccountTile key={a.id} a={a} m={accountMetrics(a, allTrades)} i={i} onClick={() => openModal('account', { id: a.id })} />)}
               </div>
             )}
@@ -75,7 +75,7 @@ export default function Propfirm() {
         ) : (
           <motion.div key="hist" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {history.length === 0 ? <Empty icon={<Trophy />} title="No closed accounts yet">Passed, failed and archived accounts land here with what each one cost and paid.</Empty> : (
-              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', marginTop: 18 }}>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,320px),1fr))', marginTop: 18 }}>
                 {history.map((a, i) => <AccountTile key={a.id} a={a} m={accountMetrics(a, allTrades)} i={i} onClick={() => openModal('account', { id: a.id })} />)}
               </div>
             )}

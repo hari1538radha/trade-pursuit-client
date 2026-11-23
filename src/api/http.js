@@ -91,6 +91,16 @@ export const httpApi = {
     range: (symbols) => req('GET', `/markets/range${qs({ symbols: symbols.join(',') })}`),
     goldbach: (symbol, interval) => req('GET', `/markets/goldbach${qs({ symbol, interval })}`),
   },
+  // Admin's own tracking: money, prop-firm payouts, lifestyle
+  personal: {
+    list: (kind, q = {}) => req('GET', `/me/${kind}${qs(q)}`),
+    create: (kind, b) => req('POST', `/me/${kind}`, b),
+    update: (kind, id, b) => req('PUT', `/me/${kind}/${id}`, b),
+    remove: (kind, id) => req('DELETE', `/me/${kind}/${id}`),
+    importProps: (b) => req('POST', '/me/props/import', b),
+    days: (from) => req('GET', `/me/life/days${qs({ from })}`),
+    saveDay: (date, b) => req('PUT', `/me/life/days/${date}`, b),
+  },
   notes: {
     list: () => req('GET', '/notes'),
     create: (b) => req('POST', '/notes', b),

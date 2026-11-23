@@ -18,6 +18,9 @@ import Quiz from './pages/Quiz.jsx';
 import Calm from './pages/Calm.jsx';
 import News from './pages/News.jsx';
 import Traders from './pages/Traders.jsx';
+import Money from './pages/Money.jsx';
+import Payouts from './pages/Payouts.jsx';
+import Life from './pages/Life.jsx';
 
 // In-memory routing in the static preview, clean URLs when served by the API server.
 const Router = import.meta.env.VITE_DEMO === 'true' ? MemoryRouter : BrowserRouter;
@@ -53,6 +56,9 @@ export default function App() {
           <Route path="quiz" element={admin(<Quiz />)} />
           <Route path="calm" element={admin(<Calm />)} />
           <Route path="news" element={<News />} />
+          <Route path="money" element={admin(<Money />)} />
+          <Route path="payouts" element={admin(<Payouts />)} />
+          <Route path="lifestyle" element={admin(<Life />)} />
           <Route path="traders" element={admin(<Traders />)} />
           <Route path="traders/:id" element={admin(<Traders />)} />
           <Route path="*" element={<Navigate to="/" replace />} />

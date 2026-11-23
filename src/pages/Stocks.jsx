@@ -142,7 +142,7 @@ function Watchlist({ items, setItems, onOpen }) {
   const save = async (w, patch) => { const { item } = await api.watchlist.update(w.id, patch); setItems((x) => x.map((y) => (y.id === w.id ? { ...y, ...item } : y))); };
   if (!items.length) return <Empty icon={<Star />} title="Your list is empty">Star stocks from the scanner. Each saves with its setup, a trigger, a stop based on support or volatility, and a target at the next resistance. Edit any of them.</Empty>;
   return (
-    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', marginTop: 16 }}>
+    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,340px),1fr))', marginTop: 16 }}>
       {items.map((w, i) => {
         const now = w.now;
         const move = now && w.addedClose ? (now.close / w.addedClose - 1) * 100 : null;
@@ -155,7 +155,7 @@ function Watchlist({ items, setItems, onOpen }) {
               <div style={{ textAlign: 'right' }}><b>{now ? inr(now.close) : '—'}</b>{move != null && <div className={move >= 0 ? 'pos' : 'neg'} style={{ fontSize: 12.5 }}>{pctf(move)} since added</div>}</div>
             </div>
             {(triggered || stopped) && <div className={cls('tag', stopped ? 'neg' : 'pos')} style={{ marginTop: 10 }}>{stopped ? 'Closed past your stop' : 'Closed past your trigger'}</div>}
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 12 }}>
+            <div className="grid rg-1" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 12 }}>
               {[['Trigger', 'entry'], ['Stop', 'stop'], ['Target', 'target']].map(([l, k]) => (
                 <label key={k} className="col" style={{ gap: 4 }}><span className="dim" style={{ fontSize: 11 }}>{l}</span>
                   <input className="input" style={{ padding: '7px 9px', fontSize: 13 }} defaultValue={w[k] ?? ''} onBlur={(e) => { const v = e.target.value === '' ? null : +e.target.value; if (v !== w[k]) save(w, { [k]: v }); }} /></label>
@@ -217,7 +217,7 @@ function StockDrawer({ symbol, onClose, inWatch, onAdd, onRemove }) {
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 12 }}>
+                <div className="grid rg-2" style={{ gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 12 }}>
                   {[['52w high', inr(a.hi52), pctf(a.fromHigh)], ['52w low', inr(a.lo52), pctf(a.fromLow)], ['RSI 14', a.rsi?.toFixed(1)], ['ATR 14', inr(a.atr)], ['SMA 50', inr(a.sma50)], ['SMA 200', a.sma200 ? inr(a.sma200) : '—'], ['Volume × avg', `${a.volRatio}×`], ['Turnover/day', `₹${a.turnoverCr} Cr`]].map(([l, v, s]) => (
                     <div key={l} className="card" style={{ padding: 12 }}><div className="muted" style={{ fontSize: 11.5 }}>{l}</div><b>{v}</b>{s && <div className="dim" style={{ fontSize: 11.5 }}>{s}</div>}</div>
                   ))}

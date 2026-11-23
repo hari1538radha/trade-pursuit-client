@@ -32,7 +32,7 @@ export default function ReportDialog({ open, onClose, kind: initialKind }) {
           {periods.map((x, i) => <option key={x.from} value={i}>{i === 0 ? `This ${kind}: ` : ''}{x.label}</option>)}
         </select>
       </div>
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+      <div className="grid rg-1" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
         <div className="card" style={{ padding: 14 }}><div className="muted" style={{ fontSize: 12 }}>Net P&amp;L</div><b style={{ fontSize: 20 }}><Money value={s.total} cents={false} /></b></div>
         <div className="card" style={{ padding: 14 }}><div className="muted" style={{ fontSize: 12 }}>Trades</div><b style={{ fontSize: 20 }}>{s.count}</b></div>
         <div className="card" style={{ padding: 14 }}><div className="muted" style={{ fontSize: 12 }}>Win rate</div><b style={{ fontSize: 20 }}>{s.winRate.toFixed(0)}%</b></div>

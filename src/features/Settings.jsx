@@ -34,7 +34,7 @@ export default function Settings({ open, onClose, tab: initial }) {
                 <div><b style={{ fontSize: 26 }}>{user.displayName}</b><div className="muted">@{user.username} · Free forever</div></div>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', flex: 1, minHeight: 0, marginTop: 20 }}>
+            <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: '240px 1fr', flex: 1, minHeight: 0, marginTop: 20 }}>
               <nav style={{ padding: '10px 14px', overflowY: 'auto' }}>
                 {TABS.map(([t, I]) => (
                   <button key={t} onClick={() => setTab(t)} className="row" style={{ width: '100%', gap: 12, padding: '11px 12px', borderRadius: 12, position: 'relative', color: tab === t ? 'var(--text)' : 'var(--text2)', fontSize: 15 }}>

@@ -17,7 +17,7 @@ export default function Strategy() {
         <button className="btn" onClick={() => openModal('settings', { tab: 'Tags' })}><Plus size={15} /> Edit playbooks</button>
       </div>
       {books.length === 0 ? <Empty icon={<Target />} title="No playbooks yet">Add the setups you trade, then tag each trade with one.</Empty> : (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', marginTop: 24 }}>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,320px),1fr))', marginTop: 24 }}>
           {books.map((b, i) => {
             const st = stats.find((s) => s.key === b) || { count: 0, pnl: 0, winRate: 0, avg: 0 };
             const ts = trades.filter((t) => t.playbook === b);
@@ -27,7 +27,7 @@ export default function Strategy() {
                 <div className="row between"><b style={{ fontSize: 22 }}>{b}</b><span className="tag">{st.count} trades</span></div>
                 <div style={{ fontSize: 36, fontWeight: 700, margin: '14px 0' }}><Money value={st.pnl} cents={false} /></div>
                 <div className="bar" style={{ height: 6 }}><motion.i initial={{ width: 0 }} whileInView={{ width: `${st.winRate}%` }} viewport={{ once: true }} transition={{ duration: 0.9 }} style={{ background: st.pnl >= 0 ? 'var(--green)' : 'var(--red)' }} /></div>
-                <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginTop: 14, gap: 8 }}>
+                <div className="grid rg-1" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginTop: 14, gap: 8 }}>
                   {[['Win rate', `${st.winRate.toFixed(0)}%`], ['Avg trade', <Money key="a" value={st.avg || 0} cents={false} />], ['Avg win R', s.avgWinRR != null ? `${s.avgWinRR.toFixed(1)}R` : '—']].map(([l, v]) => <div key={l}><div className="muted" style={{ fontSize: 12 }}>{l}</div><b>{v}</b></div>)}
                 </div>
               </Reveal>

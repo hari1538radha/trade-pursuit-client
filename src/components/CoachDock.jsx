@@ -25,7 +25,8 @@ export default function CoachDock() {
   const { trades, breakEven, settings, updateUser, notify, isAdmin } = useApp();
   const nav = useNavigate();
   const lookback = settings.coach?.lookback || 5;
-  const [open, setOpen] = useState(() => localStorage.getItem('tp.coach.open') !== '0');
+  // Starts collapsed on phones and iPads (unless opened before) so it doesn't cover the page
+  const [open, setOpen] = useState(() => { const v = localStorage.getItem('tp.coach.open'); return v ? v !== '0' : !window.matchMedia('(max-width:1024px)').matches; });
   const [tab, setTab] = useState('emotions');
   const [brief, setBrief] = useState(false);
   const [nudge, setNudge] = useState(null);

@@ -71,7 +71,7 @@ export default function Notes() {
           {notes.length ? 'Try another search or type.' : 'The traders who improve fastest write down what they learn. Use the templates for lessons, mistakes and weekly reviews.'}
         </Empty>
       ) : (
-        <motion.div layout className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', marginTop: 18 }}>
+        <motion.div layout className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,320px),1fr))', marginTop: 18 }}>
           <AnimatePresence>
             {shown.map((n, i) => (
               <motion.div layout key={n.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ delay: Math.min(i, 10) * 0.03 }} className="card note-card" style={{ borderTop: `3px solid ${KIND_COLOR[n.kind]}` }} onClick={() => open(n)}>

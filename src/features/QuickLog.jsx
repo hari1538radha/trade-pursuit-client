@@ -58,7 +58,7 @@ export default function QuickLog({ open, onClose }) {
     <Sheet open={open} onClose={onClose} eyebrow="Journal" title="Quick Log">
       <div className="ql">
         <p className="muted" style={{ textAlign: 'center', fontSize: 16, margin: '0 0 22px' }}>L / S = direction · 1—5 = grade · Enter = submit</p>
-        <div className="grid" style={{ gridTemplateColumns: '1.5fr 1fr', gap: 18 }}>
+        <div className="grid rg-1" style={{ gridTemplateColumns: '1.5fr 1fr', gap: 18 }}>
           <div className="ql-box"><div className="eyebrow">Symbol</div><input ref={symRef} list="ql-symbols" className="ql-sym" placeholder={lastSym} value={f.symbol} onChange={(e) => setF({ ...f, symbol: e.target.value })} onKeyDown={(e) => e.key === 'Tab' && !f.symbol && setF({ ...f, symbol: lastSym })} /><datalist id="ql-symbols">{ALL_SYMBOLS.map((x) => <option key={x.symbol} value={x.symbol}>{x.name} · {x.category}</option>)}</datalist></div>
           <div className="ql-box"><div className="eyebrow">Date</div><input type="date" className="input" style={{ background: 'none', fontSize: 22, padding: '10px 0' }} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /><div className="dim" style={{ fontSize: 12 }}>{shortDate(f.date)}</div></div>
         </div>

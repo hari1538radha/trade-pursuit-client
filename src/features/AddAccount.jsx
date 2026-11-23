@@ -35,7 +35,7 @@ export default function AddAccount({ open, onClose, firmId }) {
               <h2 style={{ margin: 0, fontSize: 36, letterSpacing: '-.03em' }}>Add account</h2>
               <button className="close-x" onClick={onClose}><X size={18} /></button>
             </div>
-            <div className="grid" style={{ gridTemplateColumns: '220px 1fr', gap: 18 }}>
+            <div className="grid rg-1" style={{ gridTemplateColumns: '220px 1fr', gap: 18 }}>
               <div className="card" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
                 {['Firm', 'Plan', 'Log', 'Done'].map((s, i) => <div key={s} className="row" style={{ gap: 10, padding: '10px 0', color: i === 0 ? 'var(--text)' : 'var(--muted)' }}><span style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${i === 0 ? '#fff' : '#444'}` }} />{s}</div>)}
                 <p className="dim" style={{ marginTop: 'auto', fontSize: 12.5, lineHeight: 1.5 }}>{FIRM_NOTE}</p>

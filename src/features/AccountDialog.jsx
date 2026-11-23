@@ -24,7 +24,7 @@ export default function AccountDialog({ open, onClose, id }) {
   return (
     <Dialog open={open} onClose={onClose} title={a.name}>
       <div className="muted" style={{ marginTop: -12, marginBottom: 18 }}>{a.firmName} · {a.program} {a.variant} · {usd(a.size)} · {a.kind === 'funded' ? 'Funded' : a.phase}</div>
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+      <div className="grid rg-1" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
         <div className="card" style={{ padding: 16 }}><div className="muted" style={{ fontSize: 13 }}>Balance</div><b style={{ fontSize: 22 }}>{usd(m.balance)}</b></div>
         <div className="card" style={{ padding: 16 }}><div className="muted" style={{ fontSize: 13 }}>P&amp;L</div><b style={{ fontSize: 22 }}><Money value={m.pnl} /></b></div>
         <div className="card" style={{ padding: 16 }}><div className="muted" style={{ fontSize: 13 }}>Days / trades</div><b style={{ fontSize: 22 }}>{m.days} / {m.trades}</b></div>

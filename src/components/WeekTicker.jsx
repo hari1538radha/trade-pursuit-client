@@ -24,7 +24,7 @@ export default function WeekTicker() {
   return (
     <>
       <button className="wk-ticker" onClick={setOpen} title="Open last week's review">
-        <span className="wk-label"><AlertTriangle size={14} /> {label}</span>
+        <span className="wk-label"><AlertTriangle size={14} /> <span className="wk-label-text">{label}</span></span>
         <span className="wk-track"><span className="wk-run" style={{ animationDuration: `${Math.max(30, week.items.length * 12)}s` }}>{strip}{strip}</span></span>
       </button>
     </>

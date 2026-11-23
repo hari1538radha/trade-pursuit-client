@@ -58,7 +58,7 @@ export default function Dashboard() {
         <span className="eyebrow">Performance</span>
         <div className="row"><button className="btn sm ghost" onClick={() => nav('/analytics')}>Full analytics →</button><button className="btn sm" onClick={toggleHide}>{hidePnl ? <EyeOff size={14} /> : <Eye size={14} />} {hidePnl ? 'Show' : 'Hide'} P&amp;L</button></div>
       </div>
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1.3fr 1fr' }}>
+      <div className="grid rg-1 rg-1-tab" style={{ gridTemplateColumns: '1fr 1.3fr 1fr' }}>
         <Reveal className="card stat"><div className="label">Avg Win RR</div><div className="val">{s.avgWinRR != null ? `${s.avgWinRR.toFixed(2)}R` : '—'}</div><div className="foot">Profit factor {Number.isFinite(s.profitFactor) ? s.profitFactor.toFixed(2) : '∞'}</div></Reveal>
         <Reveal delay={0.05} className="card row" style={{ gap: 24 }}>
           <Ring value={s.winRate} />
@@ -68,7 +68,7 @@ export default function Dashboard() {
         <Reveal delay={0.1} className="card stat"><div className="label">Avg Win / Loss</div><div className="val"><Money value={s.avgWin} cents={false} className="" /></div><div className="foot">Avg loss <Money value={-s.avgLoss} cents={false} /></div></Reveal>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1.6fr 1fr', marginTop: 14 }}>
+      <div className="grid rg-1 rg-1-tab" style={{ gridTemplateColumns: '1.6fr 1fr', marginTop: 14 }}>
         <Reveal className="card">
           <div className="row between"><span className="eyebrow">Cumulative P&amp;L <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>All time</span></span><b><Money value={s.total} cents={false} /></b></div>
           <div style={{ height: 280, marginTop: 12 }}>

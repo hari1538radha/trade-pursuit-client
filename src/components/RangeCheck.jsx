@@ -134,7 +134,7 @@ function SymbolCheck({ symbol, live, error, loading, onLog, onRemove }) {
       {!live && error && <div className="dim" style={{ fontSize: 12, marginTop: 8 }}>Live data unavailable: {error}. Read the numbers off your daily chart below.</div>}
 
       {useManual && (
-        <div className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
+        <div className="grid rg-2s" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
           <input className="input" style={{ padding: '9px 11px' }} value={m.ranges} onChange={setField('ranges')} placeholder="Last 10 daily ranges, e.g. 41 38 52 …, or one average" />
           <input className="input" style={{ padding: '9px 11px' }} inputMode="decimal" value={m.todayHigh} onChange={setField('todayHigh')} placeholder="Today high" />
           <input className="input" style={{ padding: '9px 11px' }} inputMode="decimal" value={m.todayLow} onChange={setField('todayLow')} placeholder="Today low" />
