@@ -8,13 +8,17 @@ import Calendar from '../components/Calendar.jsx';
 import { summary, cumulative, groupBy, byWeekday, byHour, combos, streaks, insights, real } from '../lib/stats.js';
 import { dayMonth, addDays, today } from '../lib/dates.js';
 import { money, pct } from '../lib/format.js';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, FileDown, Target as TargetIco, ThumbsUp } from 'lucide-react';
+import { LineChart, Line } from 'recharts';
+import { improvementPlan, avoidList } from '../lib/coach.js';
+import { tradeScore } from '../lib/stats.js';
+import { weekStart } from '../lib/dates.js';
 
-const TABS = ['Overview', 'Performance', 'Time', 'Psychology', 'Insights', 'Risk'];
+const TABS = ['Overview', 'Coach', 'Performance', 'Time', 'Psychology', 'Insights', 'Risk'];
 const G = 'var(--green)', R = 'var(--red)';
 
 export default function Analytics() {
-  const { trades: all, breakEven, hidePnl, toggleHide, accounts } = useApp();
+  const { trades: all, breakEven, hidePnl, toggleHide, accounts, openModal } = useApp();
   const [tab, setTab] = useState('Overview');
   const [range, setRange] = useState('All');
   const [acct, setAcct] = useState('');
@@ -40,6 +44,7 @@ export default function Analytics() {
           <select className="select" style={{ width: 150, padding: '8px 12px' }} value={acct} onChange={(e) => setAcct(e.target.value)}><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
           <Seg options={['30D', '90D', 'YTD', 'All']} value={range} onChange={setRange} />
           <button className="btn sm" onClick={toggleHide}>{hidePnl ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+          <button className="btn sm" onClick={() => openModal('report')} title="Download PDF report"><FileDown size={14} /> PDF</button>
         </div>
       </div>
 
@@ -53,6 +58,11 @@ export default function Analytics() {
           <Reveal className="card"><h3>Cumulative P&amp;L</h3><CumChart trades={trades} /></Reveal>
           <Reveal delay={0.05} className="card"><h3 style={{ marginBottom: 12 }}>P&amp;L Calendar</h3><Calendar trades={trades} /></Reveal>
         </div>
+      </section>
+
+      <section id="sec-Coach" style={{ scrollMarginTop: 80 }}>
+        <BigTitle tagline="What to fix next, from your own numbers.">Coach</BigTitle>
+        <CoachSec trades={trades} be={breakEven} />
       </section>
 
       <section id="sec-Performance" style={{ scrollMarginTop: 80 }}>
@@ -227,6 +237,67 @@ function Risk({ trades, be }) {
         <Reveal className="card"><h3>Drawdown from peak</h3><CumChart trades={trades} dd /></Reveal>
         <Reveal delay={0.05} className="card"><h3>R distribution</h3><div className="sub">Realized R on each trade</div><Bars data={rBuckets.map((b, i) => ({ ...b, pnl: i < 2 ? -1 : 1 }))} dataKey="count" name="Trades" fmt={(v) => v} /></Reveal>
       </div>
+    </div>
+  );
+}
+
+function CoachSec({ trades, be }) {
+  const plan = improvementPlan(trades, { be });
+  const avoid = avoidList(trades, { be }).filter((a) => a.source === 'data');
+  const ts = real(trades);
+  // weekly discipline trend
+  const weeks = new Map();
+  for (const t of ts) { const k = weekStart(t.date); const w = weeks.get(k) || { s: 0, n: 0, pnl: 0 }; w.s += tradeScore(t).score; w.n++; w.pnl += t.pnl || 0; weeks.set(k, w); }
+  const trend = [...weeks.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([k, w]) => ({ key: dayMonth(k), score: Math.round(w.s / w.n), pnl: Math.round(w.pnl) }));
+  // what happens on the trade right after an emotional trade
+  const sorted = ts.slice().sort((a, b) => (a.date + (a.entryTime || '')).localeCompare(b.date + (b.entryTime || '')));
+  let afterNeg = 0, afterNegN = 0;
+  sorted.forEach((t, i) => { if (i && (sorted[i - 1].emotionsNeg || []).length) { afterNeg += t.pnl || 0; afterNegN++; } });
+  const avgAll = ts.length ? ts.reduce((a, t) => a + (t.pnl || 0), 0) / ts.length : 0;
+  return (
+    <div style={{ position: 'relative', zIndex: 1 }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))' }}>
+        {[['Discipline score', `${plan.discipline}/100`], ['On-plan trades', `${plan.planRate.toFixed(0)}%`], ['Trades with notes', `${plan.journaled.toFixed(0)}%`], ['Next trade after an emotional one', afterNegN ? <Money key="a" value={afterNeg / afterNegN} cents={false} /> : '—']].map(([l, v], i) => (
+          <Reveal key={l} delay={i * 0.04} className="card stat"><div className="label">{l}</div><div className="val" style={{ fontSize: 28 }}>{v}</div>{l.startsWith('Next') && afterNegN > 0 && <div className="foot">avg, vs <Money value={avgAll} cents={false} /> overall</div>}</Reveal>
+        ))}
+      </div>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', marginTop: 14 }}>
+        <Reveal className="card">
+          <h3 className="row"><TargetIco size={16} /> Your 3 focus areas</h3>
+          <div className="col" style={{ gap: 10, marginTop: 14 }}>
+            {plan.focus.map((f, i) => (
+              <div key={f.title} className="row" style={{ alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 12, background: 'rgba(248,113,113,.06)', border: '1px solid rgba(248,113,113,.2)' }}>
+                <b className="neg" style={{ fontSize: 18 }}>{i + 1}</b><div><b>{f.title}</b><div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{f.detail}</div></div>
+              </div>
+            ))}
+          </div>
+          {plan.strengths.length > 0 && <>
+            <h3 className="row" style={{ marginTop: 20 }}><ThumbsUp size={16} /> Keep doing</h3>
+            <div className="col" style={{ gap: 8, marginTop: 10 }}>{plan.strengths.map((st) => <div key={st.text}><b className="pos">{st.text}</b><div className="muted" style={{ fontSize: 13 }}>{st.why}</div></div>)}</div>
+          </>}
+        </Reveal>
+        <Reveal delay={0.05} className="card">
+          <h3>Discipline trend</h3><div className="sub">Average trade score per week (plan, grade, notes, emotions)</div>
+          <div style={{ height: 240, marginTop: 10 }}>
+            {trend.length > 1 ? (
+              <ResponsiveContainer>
+                <LineChart data={trend}>
+                  <CartesianGrid strokeDasharray="3 4" vertical={false} />
+                  <XAxis dataKey="key" tickLine={false} axisLine={false} />
+                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={36} />
+                  <Tooltip content={<ChartTip fmt={(v) => v} />} />
+                  <ReferenceLine y={70} stroke="#4ade8055" strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="score" name="Discipline" stroke="#a78bfa" strokeWidth={2.5} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : <div className="empty" style={{ padding: 40 }}>Needs two weeks of trades</div>}
+          </div>
+        </Reveal>
+      </div>
+      <Reveal className="card" style={{ marginTop: 14 }}>
+        <h3>What's costing you</h3><div className="sub">Each item is backed by your trades. These also appear in the Coach panel's "Don't do next" list.</div>
+        {avoid.length ? <Bars data={avoid.slice(0, 8).map((a) => ({ key: a.text.replace(/^Don't /, '').slice(0, 40), pnl: Math.round(a.cost || 0), count: 9 }))} layout="vertical" /> : <p className="muted">Nothing stands out yet. Keep tagging emotions, plan and grade on every trade.</p>}
+      </Reveal>
     </div>
   );
 }

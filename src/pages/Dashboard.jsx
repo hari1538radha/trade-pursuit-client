@@ -8,6 +8,7 @@ import { Money, CountUp, Reveal, ChartTip, Field } from '../components/ui.jsx';
 import Calendar from '../components/Calendar.jsx';
 import ExecutionStats from '../components/ExecutionStats.jsx';
 import RangeCheck from '../components/RangeCheck.jsx';
+import PremarketCard from '../components/PremarketCard.jsx';
 import { summary, cumulative, real } from '../lib/stats.js';
 import { longDate, today, weekStart, dayMonth, addDays } from '../lib/dates.js';
 import { money } from '../lib/format.js';
@@ -29,6 +30,8 @@ export default function Dashboard() {
         <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Dashboard</h1><div className="muted">{longDate(today())}</div></div>
         <div className="row"><button className="btn sm" onClick={() => openModal('quick')}><Plus size={14} /> Quick log</button><button className="btn sm primary" onClick={() => openModal('log')}><Plus size={14} /> Log trade</button></div>
       </div>
+
+      <PremarketCard />
 
       {s.count === 0 && (
         <Reveal className="banner" style={{ marginTop: 22 }}>

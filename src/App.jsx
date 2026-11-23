@@ -10,8 +10,11 @@ import Journal from './pages/Journal.jsx';
 import Analytics from './pages/Analytics.jsx';
 import Propfirm from './pages/Propfirm.jsx';
 import Strategy from './pages/Strategy.jsx';
-import Community from './pages/Community.jsx';
-import PreMarket from './pages/PreMarket.jsx';
+import Options from './pages/Options.jsx';
+import Stocks from './pages/Stocks.jsx';
+import Notes from './pages/Notes.jsx';
+import Quiz from './pages/Quiz.jsx';
+import Calm from './pages/Calm.jsx';
 import News from './pages/News.jsx';
 
 // In-memory routing in the static preview, clean URLs when served by the API server.
@@ -39,9 +42,12 @@ export default function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="propfirm" element={<Propfirm />} />
           <Route path="strategy" element={<Strategy />} />
-          <Route path="premarket" element={<PreMarket />} />
+          <Route path="options" element={<Options />} />
+          <Route path="stocks" element={<Stocks />} />
+          <Route path="notes" element={<Notes />} />
+          <Route path="quiz" element={<Quiz />} />
+          <Route path="calm" element={<Calm />} />
           <Route path="news" element={<News />} />
-          <Route path="community" element={<Community />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

@@ -4,6 +4,9 @@ import firmsCatalog from '@shared/firms.json';
 import { setToken, getToken } from './http.js';
 import { fetchNewsDirect } from './news.js';
 import { ymd, addDays, parseYmd } from '../lib/dates.js';
+import { UNDERLYINGS, normalizeChain, chainStats, marketOpen } from '../lib/market/options.js';
+import { SETUPS, analyze } from '../lib/market/scanner.js';
+import { rawChain, demoHistory, demoStocks } from '../lib/market/demo.js';
 
 const KEY = 'edgelog.demo.db';
 const DEFAULT_CHECKLIST = ['Have you done your high timeframe?', 'Do you have that FVG gap?', 'Do we have an inverse to the upside?', 'Did we think about this entry before entering?'];
@@ -19,6 +22,7 @@ const DEFAULT_TAGS = {
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; } };
 let db = load() || { users: [], trades: [], accounts: [], plans: [], posts: [] };
 db.friends ||= [];
+db.notes ||= []; db.quiz ||= []; db.watch ||= [];
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { throw fail(413, 'Browser storage is full — remove some screenshots'); } };
 const id = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join('');
 const fail = (status, msg) => Object.assign(new Error(msg), { status });
@@ -45,7 +49,7 @@ function sampleNews(week) {
 const now = () => new Date().toISOString();
 
 function newUser(username, pw, displayName) {
-  return { id: id(), username, displayName: displayName || username, pw, bio: '', createdAt: now(), settings: { checklist: [...DEFAULT_CHECKLIST], breakEven: 0, guardrails: { enabled: false, dailyLossLimit: 0, maxTradesPerDay: 0 }, tags: structuredClone(DEFAULT_TAGS) }, goals: { week: '', month: '', year: '', life: '', why: '' } };
+  return { id: id(), username, displayName: displayName || username, pw, bio: '', createdAt: now(), settings: { checklist: [...DEFAULT_CHECKLIST], breakEven: 0, guardrails: { enabled: false, dailyLossLimit: 0, maxTradesPerDay: 0 }, donts: [], coach: { enabled: true, lookback: 5 }, tags: structuredClone(DEFAULT_TAGS) }, goals: { week: '', month: '', year: '', life: '', why: '' } };
 }
 
 export const demoApi = {
@@ -87,7 +91,7 @@ export const demoApi = {
     async deleteAccount({ password }) {
       const u = me();
       if (u.pw !== (await hash(password))) throw fail(401, 'Password is wrong');
-      for (const k of ['trades', 'accounts', 'plans', 'posts']) db[k] = db[k].filter((x) => x.user !== u.id);
+      for (const k of ['trades', 'accounts', 'plans', 'posts', 'notes', 'quiz', 'watch']) db[k] = db[k].filter((x) => x.user !== u.id);
       db.friends = db.friends.filter((f) => f.from !== u.id && f.to !== u.id);
       db.users = db.users.filter((x) => x.id !== u.id); save(); return wait({ ok: true });
     },
@@ -232,6 +236,72 @@ export const demoApi = {
     async remove(pid) { const uid = me().id; db.posts = db.posts.filter((p) => !(p.id === pid && p.user === uid)); save(); return wait({ ok: true }); },
   },
   markets: { async range() { throw fail(503, 'live prices need the API server'); } },
+  notes: {
+    async list() { const uid = me().id; return wait({ notes: db.notes.filter((n) => n.user === uid).sort((a, b) => (b.pinned - a.pinned) || b.updatedAt.localeCompare(a.updatedAt)) }); },
+    async create(b) {
+      if (!b.title?.trim()) throw fail(400, 'title is required');
+      const n = { kind: 'lesson', body: '', tags: [], pinned: false, ...b, id: id(), user: me().id, createdAt: now(), updatedAt: now() };
+      db.notes.push(n); save(); return wait({ note: n });
+    },
+    async update(nid, b) {
+      const n = db.notes.find((x) => x.id === nid && x.user === me().id);
+      if (!n) throw fail(404, 'Note not found');
+      Object.assign(n, b, { updatedAt: now() }); save(); return wait({ note: n });
+    },
+    async remove(nid) { db.notes = db.notes.filter((x) => !(x.id === nid && x.user === me().id)); save(); return wait({ ok: true }); },
+  },
+  quiz: {
+    async list() { const uid = me().id; return wait({ results: db.quiz.filter((q) => q.user === uid).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }); },
+    async save(b) { const r = { ...b, id: id(), user: me().id, createdAt: now() }; db.quiz.push(r); save(); return wait({ result: r }); },
+  },
+  options: {
+    async chain({ underlying, expiry }) {
+      me();
+      const stock = !UNDERLYINGS[underlying] ? demoStocks().results.find((x) => x.symbol === underlying) : null;
+      const chain = normalizeChain(rawChain(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, 1, stock?.close).rows);
+      return wait({ chain, stats: chainStats(chain), has: { ltp: true, iv: true, delta: true, theta: true, gamma: true, vega: true, volume: true }, marketOpen: marketOpen(), at: new Date().toISOString() });
+    },
+    async history(underlying, expiry) {
+      const stock = !UNDERLYINGS[underlying] ? demoStocks().results.find((x) => x.symbol === underlying) : null;
+      return wait({ snaps: demoHistory(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, stock?.close) });
+    },
+  },
+  stocks: {
+    async status() { const d = demoStocks(); return wait({ lastDate: d.lastDate, symbols: d.results.length, stale: false, demo: true, job: { running: false } }); },
+    async refresh() { return wait({ job: { running: false } }); },
+    async setups() { return wait({ setups: SETUPS }); },
+    async scan(q = {}) {
+      const d = demoStocks();
+      const base = d.results.filter((x) => x.close >= (q.minPrice ?? 20) && (!q.maxPrice || x.close <= q.maxPrice) && x.turnoverCr >= (q.minTurnover ?? 1));
+      const counts = {};
+      for (const x of base) for (const t of x.tags) counts[t] = (counts[t] || 0) + 1;
+      let rows = base.filter((x) => (!q.setup || x.tags.includes(q.setup)) && (!q.q || x.symbol.includes(q.q.toUpperCase())));
+      const key = { turnover: (x) => -x.turnoverCr, change: (x) => -x.chgPct, volume: (x) => -x.volRatio, fromHigh: (x) => -x.fromHigh, fromLow: (x) => x.fromLow, rsi: (x) => x.rsi ?? 50 }[q.sort || 'turnover'];
+      rows = rows.slice().sort((a, b) => key(a) - key(b));
+      return wait({ lastDate: d.lastDate, total: rows.length, universe: base.length, counts, rows: rows.slice(0, q.limit || 500) });
+    },
+    async search(q) { const u = String(q).toUpperCase(); return wait({ results: demoStocks().results.filter((x) => x.symbol.startsWith(u)).slice(0, 15).map((x) => ({ symbol: x.symbol, name: x.name, isin: x.isin, close: x.close })) }); },
+    async detail(sym) {
+      const s = demoStocks().series.get(sym);
+      if (!s) throw fail(404, 'Symbol not found');
+      const from = s.c.length - 250;
+      return wait({ symbol: s.symbol, name: s.name, isin: s.isin, analysis: analyze(s), bars: s.d.slice(from).map((d, i) => ({ d, o: s.o[from + i], h: s.h[from + i], l: s.l[from + i], c: s.c[from + i], v: s.v[from + i] })) });
+    },
+  },
+  watchlist: {
+    async list() {
+      const uid = me().id; const bySym = new Map(demoStocks().results.map((x) => [x.symbol, x]));
+      return wait({ items: db.watch.filter((w) => w.user === uid).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((w) => ({ ...w, now: bySym.get(w.symbol) || null })) });
+    },
+    async add(b) {
+      const uid = me().id; const sym = b.symbol.toUpperCase();
+      let w = db.watch.find((x) => x.user === uid && x.symbol === sym);
+      if (!w) { w = { id: id(), user: uid, status: 'watching', side: 'watch', note: '', createdAt: now() }; db.watch.push(w); }
+      Object.assign(w, b, { symbol: sym, updatedAt: now() }); save(); return wait({ item: w });
+    },
+    async update(wid, b) { const w = db.watch.find((x) => x.id === wid && x.user === me().id); if (!w) throw fail(404, 'Not found'); Object.assign(w, b); save(); return wait({ item: w }); },
+    async remove(wid) { db.watch = db.watch.filter((x) => !(x.id === wid && x.user === me().id)); save(); return wait({ ok: true }); },
+  },
   firms: async () => firmsCatalog,
 
   /** Create a sample user with ~2 months of realistic trades so every screen has data. */

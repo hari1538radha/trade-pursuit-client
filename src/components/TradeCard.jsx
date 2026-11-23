@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Clock, ArrowUpRight, ArrowDownRight, Copy, Trash2, Share2 } from 'lucide-react';
+import { Clock, ArrowUpRight, ArrowDownRight, Copy, Trash2 } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Money, SymbolIcon } from './ui.jsx';
 import { tradeScore } from '../lib/stats.js';
@@ -55,7 +55,6 @@ export default function TradeCard({ t, i = 0 }) {
         <div className="score"><motion.i initial={{ width: 0 }} animate={{ width: `${sc.score}%` }} transition={{ duration: 0.8 }} /></div>
         <b style={{ whiteSpace: 'nowrap' }}>{sc.score} · {sc.label}</b>
         <span className="row" style={{ gap: 2 }}>{t.pnl > 0 ? <ArrowUpRight size={14} /> : t.pnl < 0 ? <ArrowDownRight size={14} /> : null}{t.pnl > 0 ? 'Win' : t.pnl < 0 ? 'Loss' : 'BE'}</span>
-        <button className="icon-btn" style={{ width: 26, height: 26 }} title="Share to community" onClick={stop(async () => { await api.posts.create({ text: `${t.symbol} ${t.direction} ${t.pnl >= 0 ? '+' : ''}$${t.pnl} ${t.playbook ? '#' + t.playbook.toLowerCase() : ''}`.trim(), trade: { symbol: t.symbol, direction: t.direction, pnl: t.pnl, rr: t.realizedRR, date: t.date, playbook: t.playbook, grade: t.grade } }); notify('Shared to Community'); })}><Share2 size={13} /></button>
         <button className="icon-btn" style={{ width: 26, height: 26 }} title="Duplicate" onClick={stop(async () => { const { id, createdAt, updatedAt, user, ...rest } = t; await saveTrade(rest); notify('Duplicated'); })}><Copy size={13} /></button>
         <button className="icon-btn" style={{ width: 26, height: 26 }} title="Delete" onClick={stop(async () => { if (await confirmAsk('Delete this trade?')) { await deleteTrade(t.id); notify('Deleted'); } })}><Trash2 size={13} /></button>
       </div>

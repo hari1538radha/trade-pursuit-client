@@ -22,13 +22,6 @@ export default function Auth() {
   return (
     <div className="auth">
       <div className="auth-art">
-        <motion.div initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.4, ease }} style={{ position: 'absolute', inset: 0 }}>
-          <svg viewBox="0 0 600 400" style={{ position: 'absolute', right: -40, top: 60, width: '110%', opacity: 0.55 }}>
-            <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#4f8cff" stopOpacity=".5" /><stop offset="1" stopColor="#4f8cff" stopOpacity="0" /></linearGradient></defs>
-            <motion.path d="M0 320 L60 300 L110 310 L170 250 L220 270 L280 200 L330 215 L390 150 L450 170 L510 90 L600 60" stroke="#7fb0ff" strokeWidth="3" fill="none" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2.2, ease }} />
-            <path d="M0 320 L60 300 L110 310 L170 250 L220 270 L280 200 L330 215 L390 150 L450 170 L510 90 L600 60 L600 400 L0 400Z" fill="url(#g)" />
-          </svg>
-        </motion.div>
         <div style={{ position: 'relative' }}>
           <div className="row" style={{ gap: 12, marginBottom: 30 }}><Logo size={40} /><b style={{ fontSize: 24 }}>Trade Pursuit</b></div>
           <h1>Find your edge.<br /><span className="muted">Keep your evals.</span></h1>

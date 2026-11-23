@@ -83,5 +83,31 @@ export const httpApi = {
     remove: (id) => req('DELETE', `/posts/${id}`),
   },
   markets: { range: (symbols) => req('GET', `/markets/range${qs({ symbols: symbols.join(',') })}`) },
+  notes: {
+    list: () => req('GET', '/notes'),
+    create: (b) => req('POST', '/notes', b),
+    update: (id, b) => req('PUT', `/notes/${id}`, b),
+    remove: (id) => req('DELETE', `/notes/${id}`),
+  },
+  quiz: { list: () => req('GET', '/quiz'), save: (b) => req('POST', '/quiz', b) },
+  options: {
+    // body: { cookie, underlying, expiry, atm, debug }  (cookie = your own Sensibull session)
+    chain: (body) => req('POST', '/options/chain', body),
+    history: (key, expiry) => req('GET', `/options/history${qs({ key, expiry })}`),
+  },
+  stocks: {
+    status: () => req('GET', '/stocks/status'),
+    refresh: () => req('POST', '/stocks/refresh'),
+    setups: () => req('GET', '/stocks/setups'),
+    scan: (p) => req('GET', `/stocks/scan${qs(p)}`),
+    search: (q) => req('GET', `/stocks/search${qs({ q })}`),
+    detail: (sym) => req('GET', `/stocks/${encodeURIComponent(sym)}`),
+  },
+  watchlist: {
+    list: () => req('GET', '/watchlist'),
+    add: (b) => req('POST', '/watchlist', b),
+    update: (id, b) => req('PUT', `/watchlist/${id}`, b),
+    remove: (id) => req('DELETE', `/watchlist/${id}`),
+  },
   firms: async () => firmsCatalog,
 };

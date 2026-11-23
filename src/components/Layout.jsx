@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, BookOpen, Target, BarChart3, Building2, Users, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal, Sunrise, Newspaper, Sun, Moon, Maximize2 } from 'lucide-react';
+import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Logo, Seg, Toggle, Money, Dialog, Field, Toast, SymbolIcon, ease } from './ui.jsx';
 import { cls, initials, money, usd, kfmt } from '../lib/format.js';
@@ -9,17 +9,19 @@ import { today, dayMonth, shortDate } from '../lib/dates.js';
 import { accountMetrics } from '../lib/firms.js';
 import Modals from '../features/Modals.jsx';
 import DailyNudge from './DailyNudge.jsx';
-import { carBackground } from '../lib/cars.js';
+import CoachDock from './CoachDock.jsx';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
   { to: '/journal', label: 'Journal', icon: BookOpen },
   { to: '/news', label: 'News', icon: Newspaper },
-  { to: '/premarket', label: 'Pre-market', icon: Sunrise },
   { to: '/strategy', label: 'Strategy', icon: Target },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/propfirm', label: 'Propfirm', icon: Building2 },
-  { to: '/community', label: 'Community', icon: Users },
+  { to: '/options', label: 'Options', icon: Activity },
+  { to: '/stocks', label: 'Stocks', icon: LineChart },
+  { to: '/notes', label: 'Notes', icon: NotebookPen },
+  { to: '/quiz', label: 'Quiz', icon: GraduationCap },
 ];
 
 export function ThemeToggle() {
@@ -43,9 +45,6 @@ export default function Layout() {
   const [railOpen, setRail] = useState(true);
   const mainRef = useRef(null);
   useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [loc.pathname]);
-  // Car background + glass cards on the dashboard only.
-  const car = loc.pathname === '/' ? carBackground(settings.appearance) : null;
-  const glass = Math.min(95, Math.max(10, settings.appearance?.glass ?? 50));
 
   // Global shortcuts: Q = quick log, N = log trade
   useEffect(() => {
@@ -77,11 +76,12 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+        <NavLink to="/calm" className={({ isActive }) => cls('btn sm', isActive && 'primary')} title="Mind Calm"><Leaf size={15} /> Calm</NavLink>
         <button className="btn sm" onClick={() => openModal('quick')} title="Quick log (Q)"><Plus size={15} /> Quick log</button>
         <ThemeToggle />
         <button className="icon-btn" onClick={() => openModal('settings')} title="Settings"><Settings size={18} /></button>
         <button className="row" onClick={() => openModal('settings')} style={{ gap: 10 }}>
-          <span style={{ fontWeight: 600 }}>{user.displayName}</span>
+          <span className="uname" style={{ fontWeight: 600 }}>{user.displayName}</span>
           <span className="avatar">{initials(user.displayName)}</span>
         </button>
       </header>
@@ -89,7 +89,7 @@ export default function Layout() {
       <div className="body">
         <Desk open={deskOpen} toggle={() => setDesk((o) => !o)} />
         <main className="main">
-          <div className={cls('main-card', car && 'has-car')} ref={mainRef} style={car ? { '--car': `url("${car.src}")`, '--car-pos': car.pos, '--glass': `${glass}%` } : undefined}>
+          <div className="main-card" ref={mainRef}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.div key={loc.pathname} initial={{ opacity: 0, y: 18, scale: 0.99, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }} exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }} transition={{ duration: 0.32, ease }} style={{ position: 'relative', zIndex: 1 }}>
                 <Outlet />
@@ -109,6 +109,7 @@ export default function Layout() {
       </footer>
       <Modals />
       <DailyNudge />
+      <CoachDock />
       <Toast />
     </div>
   );
@@ -154,7 +155,10 @@ function Desk({ open, toggle }) {
           </AnimatePresence>
         )}
       </div>
-      <div className="desk-foot">
+      <div style={{ padding: '12px 16px 0' }}>
+        <button className="btn" style={{ width: '100%' }} onClick={() => openModal('report')}><FileDown size={15} /> Download report (PDF)</button>
+      </div>
+      <div className="desk-foot" style={{ marginTop: 12 }}>
         <div className="row between">
           <button className="eyebrow row" style={{ gap: 6 }} onClick={() => openModal('settings', { tab: 'Guardrails' })}>Guardrails <SlidersHorizontal size={12} /></button>
           <span className="muted mono" style={{ fontSize: 12 }}>{rulesOn}/2</span>
@@ -185,12 +189,14 @@ function Rail({ open, toggle }) {
   const date = today();
   const { pathname } = useLocation();
   useEffect(() => { api.plans.get(date).then((r) => setPlan(r.plan)).catch(() => {}); }, [api, date, pathname]);
+  useEffect(() => { const h = (e) => setPlan(e.detail); window.addEventListener('tp-plan', h); return () => window.removeEventListener('tp-plan', h); }, []);
   const checklist = settings.checklist || [];
   const checks = plan?.checks || [];
   const setCheck = async (i) => {
     const next = checklist.map((_, k) => (k === i ? !checks[k] : !!checks[k]));
     setPlan((p) => ({ ...(p || {}), checks: next }));
-    await api.plans.put(date, { checks: next });
+    const r = await api.plans.put(date, { checks: next });
+    window.dispatchEvent(new CustomEvent('tp-plan-rail', { detail: r.plan }));
   };
   const td = trades.filter((t) => t.date === date && !t.noTrade);
   const pnl = td.reduce((s, t) => s + (t.pnl || 0), 0);
@@ -215,7 +221,7 @@ function Rail({ open, toggle }) {
     <aside className="rail">
       <div className="rail-inner">
         <div className="row between"><button className="icon-btn" onClick={toggle}><ChevronsRight size={16} /></button><span className="mono muted">{dayMonth(date)}</span></div>
-        <Sec k="plan" title="The plan" right={<span className="row" style={{ gap: 10 }}><button style={{ fontSize: 13 }} onClick={() => setEditing(true)}>Write</button><button className="row blue" style={{ fontSize: 13, gap: 4 }} onClick={() => nav('/premarket')} title="Open the full pre-market page"><Maximize2 size={12} /> Full</button></span>}>
+        <Sec k="plan" title="The plan" right={<button style={{ fontSize: 13 }} onClick={() => setEditing(true)}>Write</button>}>
           {hasPlan ? (
             <div className="col" style={{ gap: 10, fontSize: 13 }}>
               {plan.bias && <div className="row between"><span className="muted">Bias</span><b>{plan.bias}</b></div>}
@@ -254,7 +260,7 @@ function Rail({ open, toggle }) {
           </div>
         </Sec>
       </div>
-      <PlanDialog open={editing} onClose={() => setEditing(false)} plan={plan} onSave={async (b) => { const r = await api.plans.put(date, b); setPlan(r.plan); setEditing(false); }} />
+      <PlanDialog open={editing} onClose={() => setEditing(false)} plan={plan} onSave={async (b) => { const r = await api.plans.put(date, b); setPlan(r.plan); setEditing(false); window.dispatchEvent(new CustomEvent('tp-plan-rail', { detail: r.plan })); }} />
     </aside>
   );
 }
