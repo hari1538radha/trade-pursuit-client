@@ -6,6 +6,43 @@ import { fetchNewsDirect } from './news.js';
 import { ymd, addDays, parseYmd } from '../lib/dates.js';
 import { UNDERLYINGS, normalizeChain, chainStats, marketOpen, tickDelta } from '../lib/market/options.js';
 const demoLive = new Map(); const demoTicks = [];
+const demoRecs = () => { try { return JSON.parse(localStorage.getItem('tp.demo.rec')) || []; } catch { return []; } };
+const packChain = (chain) => chain.map((r) => [r.strike, r.ce.oi, r.pe.oi, r.ce.prevOi, r.pe.prevOi]);
+function driftChain(prevChain, base, strength = 1) {
+  const by = new Map(prevChain.map((r) => [r.strike, r]));
+  return base.map((r) => {
+    const p = by.get(r.strike); if (!p) return r;
+    const j = (oi) => Math.max(0, Math.round(oi + (Math.random() < 0.35 ? (Math.random() - 0.42) * oi * 0.004 * strength : 0)));
+    const ce = j(p.ce.oi), pe = j(p.pe.oi);
+    return { ...r, ce: { ...r.ce, oi: ce, chgOi: ce - r.ce.prevOi }, pe: { ...r.pe, oi: pe, chgOi: pe - r.pe.prevOi } };
+  });
+}
+function demoTick(k, prevChain, chain, at) {
+  const stats = chainStats(chain);
+  const d = tickDelta(prevChain, chain, stats.atm);
+  const tick = { at, spot: stats.spot, atm: stats.atm, pcr: stats.pcr, ceOI: stats.ceOI, peOI: stats.peOI, dCe: d.dCe, dPe: d.dPe, ceDelta: d.ceDelta, peDelta: d.peDelta, d: d.strikes };
+  demoTicks.push({ k, ...tick, s: packChain(chain) }); if (demoTicks.length > 6000) demoTicks.shift();
+  return tick;
+}
+/** Sample data: one 3-second pull. The first pull of a chain backfills the last 40 minutes. */
+function demoPull(underlying, expiry) {
+  const stock = !UNDERLYINGS[underlying] ? demoStocks().results.find((x) => x.symbol === underlying) : null;
+  const k = `${underlying}|${expiry}`;
+  const base = normalizeChain(rawChain(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, 1, stock?.close).rows);
+  let prev = demoLive.get(k);
+  if (!prev) {
+    // Backfill: start lower and drift up to today's numbers
+    let c = base.map((r) => ({ ...r, ce: { ...r.ce, oi: Math.round(r.ce.oi * 0.93) }, pe: { ...r.pe, oi: Math.round(r.pe.oi * 0.93) } }));
+    const n = 800, now = Date.now();
+    for (let i = n; i > 0; i--) { const nx = driftChain(c, base, 2.2); demoTick(k, c, nx, new Date(now - i * 3000).toISOString()); c = nx; }
+    prev = { chain: c };
+  }
+  const chain = driftChain(prev.chain, base);
+  const stats = chainStats(chain);
+  const tick = demoTick(k, prev.chain, chain, new Date().toISOString());
+  demoLive.set(k, { chain });
+  return { chain, stats, has: { delta: true }, marketOpen: marketOpen(), at: new Date().toISOString(), tick };
+}
 import { SETUPS, analyze } from '../lib/market/scanner.js';
 import { rawChain, demoHistory, demoStocks } from '../lib/market/demo.js';
 
@@ -236,7 +273,26 @@ export const demoApi = {
     },
     async remove(pid) { const uid = me().id; db.posts = db.posts.filter((p) => !(p.id === pid && p.user === uid)); save(); return wait({ ok: true }); },
   },
-  markets: { async range() { throw fail(503, 'live prices need the API server'); } },
+  markets: {
+    async range() { throw fail(503, 'live prices need the API server'); },
+    // Sample candles for the Goldbach page (clearly labelled as sample data)
+    async goldbach(symbol, interval = '1h') {
+      const base = symbol === 'XAGUSD' ? 50.4 : 4065;
+      const vol = symbol === 'XAGUSD' ? 0.18 : 9;
+      const step = { '15m': 9e5, '1h': 3.6e6, '4h': 1.44e7, '1d': 8.64e7 }[interval] || 3.6e6;
+      const scale = Math.sqrt(step / 3.6e6);
+      let seed = symbol === 'XAGUSD' ? 11 : 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const n = 220, now = Math.floor(Date.now() / step) * step;
+      let p = base - vol * 6 * scale;
+      const candles = [];
+      for (let i = n; i > 0; i--) {
+        const o = p, c = o + (rnd() - 0.47) * vol * scale * 1.6;
+        candles.push({ t: now - i * step, o, h: Math.max(o, c) + rnd() * vol * scale * 0.7, l: Math.min(o, c) - rnd() * vol * scale * 0.7, c });
+        p = c;
+      }
+      return wait({ symbol, name: symbol === 'XAGUSD' ? 'Silver' : 'Gold', interval, candles, price: p, spot: p, futures: p, basis: 0, adr: vol * 7, source: 'Sample data', updatedAt: new Date().toISOString(), demo: true });
+    },
+  },
   notes: {
     async list() { const uid = me().id; return wait({ notes: db.notes.filter((n) => n.user === uid).sort((a, b) => (b.pinned - a.pinned) || b.updatedAt.localeCompare(a.updatedAt)) }); },
     async create(b) {
@@ -256,33 +312,39 @@ export const demoApi = {
     async save(b) { const r = { ...b, id: id(), user: me().id, createdAt: now() }; db.quiz.push(r); save(); return wait({ result: r }); },
   },
   options: {
-    async chain({ underlying, expiry }) {
-      me();
-      const stock = !UNDERLYINGS[underlying] ? demoStocks().results.find((x) => x.symbol === underlying) : null;
+    async chain({ underlying, expiry }) { me(); return wait(demoPull(underlying, expiry)); },
+    async live(underlying, expiry) { me(); return wait({ ...demoPull(underlying, expiry), source: 'db' }); },
+    async ticks(underlying, expiry, since, bucket) {
       const k = `${underlying}|${expiry}`;
-      const prev = demoLive.get(k);
-      let chain = normalizeChain(rawChain(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, 1, stock?.close).rows);
-      // Sample data: drift OI a little on every pull so the 3-second deltas move
-      if (prev) {
-        const by = new Map(prev.chain.map((r) => [r.strike, r]));
-        chain = chain.map((r) => {
-          const p = by.get(r.strike); if (!p) return r;
-          const j = (oi, ch) => Math.max(0, Math.round(oi + (Math.random() < 0.35 ? (Math.random() - 0.45) * oi * 0.004 : 0) + ch));
-          const ce = j(p.ce.oi, 0), pe = j(p.pe.oi, 0);
-          return { ...r, ce: { ...r.ce, oi: ce, chgOi: ce - r.ce.prevOi }, pe: { ...r.pe, oi: pe, chgOi: pe - r.pe.prevOi } };
-        });
+      if (!demoLive.has(k)) demoPull(underlying, expiry);
+      const rows = demoTicks.filter((t) => t.k === k);
+      if (bucket === '1m') {
+        const m = new Map();
+        for (const t of rows) {
+          const key = Math.floor(new Date(t.at).getTime() / 60000) * 60000;
+          const b = m.get(key) || { at: new Date(key).toISOString(), dCe: 0, dPe: 0, n: 0 };
+          b.dCe += t.dCe; b.dPe += t.dPe; b.n++; b.pcr = t.pcr; b.ceOI = t.ceOI; b.peOI = t.peOI; b.spot = t.spot;
+          m.set(key, b);
+        }
+        return wait({ ticks: [...m.values()], bucket: '1m' });
       }
-      const stats = chainStats(chain);
-      let tick = null;
-      if (prev) {
-        const d = tickDelta(prev.chain, chain, stats.atm);
-        tick = { at: new Date().toISOString(), spot: stats.spot, atm: stats.atm, pcr: stats.pcr, ceOI: stats.ceOI, peOI: stats.peOI, dCe: d.dCe, dPe: d.dPe, ceDelta: d.ceDelta, peDelta: d.peDelta, d: d.strikes };
-        demoTicks.push({ k, ...tick }); if (demoTicks.length > 3000) demoTicks.shift();
-      }
-      demoLive.set(k, { chain });
-      return wait({ chain, stats, has: { ltp: true, iv: true, delta: true, theta: true, gamma: true, vega: true, volume: true }, marketOpen: marketOpen(), at: new Date().toISOString(), tick });
+      const from = since ? new Date(since).getTime() : 0;
+      return wait({ ticks: rows.filter((t) => new Date(t.at).getTime() > from).map(({ k: _k, s: _s, ...t }) => t) });
     },
-    async ticks(underlying, expiry) { return wait({ ticks: demoTicks.filter((t) => t.k === `${underlying}|${expiry}`).map(({ k, ...t }) => t) }); },
+    async strikeSeries(underlying, expiry, strikes) {
+      const want = new Set(strikes);
+      const rows = demoTicks.filter((t) => t.k === `${underlying}|${expiry}` && t.s);
+      return wait({ points: rows.map((t) => ({ at: t.at, s: t.s.filter((x) => want.has(x[0])) })) });
+    },
+    async recorders() { return wait({ recorders: demoRecs(), marketOpen: marketOpen() }); },
+    async saveRecorder(b) {
+      const list = demoRecs().filter((r) => r.underlying !== b.underlying);
+      const rec = { id: b.underlying, underlying: b.underlying, expiry: b.expiry, atm: b.atm || 'ten', autoRoll: true, enabled: b.enabled !== false, status: b.enabled === false ? 'paused' : 'recording', lastAt: new Date().toISOString(), pulls: 0 };
+      localStorage.setItem('tp.demo.rec', JSON.stringify([...list, rec]));
+      return wait({ recorder: rec });
+    },
+    async removeRecorder(u) { localStorage.setItem('tp.demo.rec', JSON.stringify(demoRecs().filter((r) => r.underlying !== u))); return wait({ ok: true }); },
+    async removeAllRecorders() { localStorage.removeItem('tp.demo.rec'); return wait({ ok: true }); },
     async history(underlying, expiry) {
       const stock = !UNDERLYINGS[underlying] ? demoStocks().results.find((x) => x.symbol === underlying) : null;
       return wait({ snaps: demoHistory(UNDERLYINGS[underlying]?.key || `NSE_EQ|${stock?.isin || underlying}`, expiry, stock?.close) });

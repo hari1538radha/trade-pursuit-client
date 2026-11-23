@@ -53,7 +53,7 @@ export default function Stocks() {
 
   const running = status?.job?.running;
   return (
-    <div className="page">
+    <div className="page wide-page">
       <div className="row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><LineIco size={22} /> Stocks</h1>

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Brain, ChevronDown, ChevronUp, Leaf, Ban, Heart, X, Check, Plus } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Money } from './ui.jsx';
-import { emotionCheck, avoidList } from '../lib/coach.js';
+import { emotionCheck, avoidList, weekWorst } from '../lib/coach.js';
 import { today } from '../lib/dates.js';
 import { cls } from '../lib/format.js';
 
@@ -33,12 +33,16 @@ export default function CoachDock() {
 
   const check = useMemo(() => emotionCheck(trades, lookback, breakEven), [trades, lookback, breakEven]);
   const avoid = useMemo(() => avoidList(trades, { be: breakEven, donts: settings.donts || [] }), [trades, breakEven, settings.donts]);
+  const week = useMemo(() => weekWorst(trades, { be: breakEven, donts: settings.donts || [] }), [trades, breakEven, settings.donts]);
   const tone = TONE[check.state];
+
+  // The red ticker under the top bar opens this card on click
+  useEffect(() => { const h = () => setBrief(true); window.addEventListener('tp-brief', h); return () => window.removeEventListener('tp-brief', h); }, []);
 
   // Daily "before you trade" briefing (once per day)
   useEffect(() => {
-    if (avoid.length && localStorage.getItem('tp.brief') !== today()) { const t = setTimeout(() => setBrief(true), 900); return () => clearTimeout(t); }
-  }, [avoid.length]);
+    if (week.items.length && localStorage.getItem('tp.brief') !== today()) { const t = setTimeout(() => setBrief(true), 900); return () => clearTimeout(t); }
+  }, [week.items.length]);
 
   // Nudge right after a losing or emotional trade is logged
   const newest = check.last[0];
@@ -148,14 +152,16 @@ export default function CoachDock() {
           <motion.div className="overlay center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="dialog" initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} style={{ borderColor: 'var(--loss-line)' }}>
               <div className="eyebrow" style={{ color: 'var(--red)' }}>Before you trade today</div>
-              <h2 style={{ margin: '6px 0 4px', fontSize: 28, letterSpacing: '-.02em' }}>Don't do these.</h2>
-              <p className="muted" style={{ marginTop: 0 }}>Pulled from your own journal. Each one has already cost you money.</p>
+              <h2 style={{ margin: '6px 0 4px', fontSize: 28, letterSpacing: '-.02em' }}>Don't repeat last week.</h2>
+              <p className="muted" style={{ marginTop: 0 }}>
+                {week.fromAllTime ? 'No trades logged last week, so these are the habits that cost you most overall.' : `The worst things you did from ${week.from} to ${week.to} (${week.count} trades, ${week.pnl < 0 ? '-' : '+'}$${Math.abs(Math.round(week.pnl)).toLocaleString('en-US')}). They stay running in the red strip under the top bar.`}
+              </p>
               <ol className="avoid big">
-                {avoid.slice(0, 5).map((a) => <li key={a.text}><b>{a.text}</b><span>{a.why}</span></li>)}
+                {week.items.slice(0, 6).map((a, i) => <li key={i}><b>{a.avoid}</b>{!a.mine && <span>{a.what}</span>}</li>)}
               </ol>
               <div className="row" style={{ marginTop: 18 }}>
                 <button className="btn" onClick={() => { setBrief(false); nav('/calm'); }}><Leaf size={15} /> Calm first</button>
-                <button className="btn primary grow" onClick={() => { localStorage.setItem('tp.brief', today()); setBrief(false); }}><Check size={16} /> Got it, I'll follow these</button>
+                <button className="btn primary grow" onClick={() => { localStorage.setItem('tp.brief', today()); setBrief(false); }}><Check size={16} /> I'll avoid these today</button>
               </div>
             </motion.div>
           </motion.div>

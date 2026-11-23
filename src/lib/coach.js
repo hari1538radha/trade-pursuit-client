@@ -151,3 +151,65 @@ export function improvementPlan(trades, opts = {}) {
   if (focus.length < 3) focus.push({ title: 'Keep risk per trade fixed', detail: 'Same risk every trade makes your stats trustworthy and your evals survivable.' });
   return { summary: s, discipline, planRate, journaled, focus: focus.slice(0, 3), strengths: strengths(ts, be) };
 }
+
+/**
+ * The worst things done in the last 7 days, each with what to do instead.
+ * Returns { from, to, count, pnl, items: [{ what, avoid, cost }] } — items most expensive first.
+ * Falls back to all-time avoid rules (fromAllTime: true) when last week has no trades.
+ */
+export function weekWorst(trades, { be = 0, donts = [], now = new Date() } = {}) {
+  const ymdOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const to = ymdOf(now);
+  const f = new Date(now); f.setDate(f.getDate() - 7);
+  const from = ymdOf(f);
+  const ts = real(trades).filter((t) => t.date >= from && t.date < to);
+  const pnl = ts.reduce((s, t) => s + (t.pnl || 0), 0);
+  const items = [];
+  const add = (what, avoid, cost) => items.push({ what, avoid, cost });
+  const sum = (list) => list.reduce((s, t) => s + (t.pnl || 0), 0);
+
+  if (!ts.length) {
+    const all = avoidList(trades, { be, donts }).slice(0, 6).map((x) => ({ what: x.why, avoid: x.text, cost: x.cost }));
+    return { from, to, count: 0, pnl: 0, items: all, fromAllTime: true };
+  }
+
+  // Biggest single losses
+  for (const t of ts.filter((x) => (x.pnl || 0) < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 2)) {
+    const tags = [...(t.emotionsNeg || []), t.followedPlan === false ? 'off-plan' : null].filter(Boolean);
+    add(`Lost ${money(t.pnl)} on ${t.symbol} (${t.date})${tags.length ? ` while ${tags.join(', ').toLowerCase()}` : ''}`,
+      t.followedPlan === false ? 'Only take trades that are in your plan' : 'Respect your stop and size for the loss you can take', t.pnl);
+  }
+  // Off-plan trades
+  const off = ts.filter((t) => t.followedPlan === false);
+  if (off.length && sum(off) < 0) add(`Took ${off.length} trade${off.length > 1 ? 's' : ''} outside your plan (${money(sum(off))})`, "If it isn't in the plan, don't click", sum(off));
+  // Revenge
+  const rev = ts.filter((t) => (/revenge/i.test(t.postLoss || '') && !/no revenge/i.test(t.postLoss || '')) || (t.emotionsNeg || []).some((e) => /revenge/i.test(e)));
+  if (rev.length) add(`Revenge-traded ${rev.length}× after a loss (${money(sum(rev))})`, 'After a loss, stand up and wait 15 minutes before the next entry', Math.min(sum(rev), -1));
+  // Emotions that cost money
+  for (const g of groupBy(ts, (t) => (t.emotionsNeg || []).filter((e) => !/revenge/i.test(e)), be).filter((g) => g.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 2)) {
+    add(`Traded while ${g.key.toLowerCase()} ${g.count}× (${money(g.pnl)})`, `When you feel ${g.key.toLowerCase()}, don't enter: breathe, then re-check the setup`, g.pnl);
+  }
+  // Kept going after two losses / too many trades in a day
+  let afterTwo = [], heavyDays = 0, heavyP = 0;
+  for (const [, day] of byDayChrono(ts)) {
+    let losses = 0;
+    day.forEach((t, i) => { if (losses >= 2) afterTwo.push(t); if (outcome(t, be) === 'loss') losses++; if (i >= 2) heavyP += t.pnl || 0; });
+    if (day.length >= 3) heavyDays++;
+  }
+  if (afterTwo.length && sum(afterTwo) < 0) add(`Kept trading after 2 losses in a day (${afterTwo.length} trades, ${money(sum(afterTwo))})`, 'Two losses = done for the day', sum(afterTwo));
+  if (heavyDays && heavyP < 0) add(`Over-traded on ${heavyDays} day${heavyDays > 1 ? 's' : ''}: 3rd+ trades lost ${money(heavyP)}`, 'Max 2 trades a day', heavyP);
+  // Weak setups
+  const low = ts.filter((t) => t.grade === 'C' || t.grade === 'F');
+  if (low.length && sum(low) < 0) add(`Took ${low.length} C/F-grade setup${low.length > 1 ? 's' : ''} (${money(sum(low))})`, 'Only A and A+ setups', sum(low));
+  // Worst symbol / session last week
+  const ws = groupBy(ts, (t) => t.symbol, be).filter((g) => g.count >= 2 && g.pnl < 0).sort((a, b) => a.pnl - b.pnl)[0];
+  if (ws) add(`${ws.key} lost ${money(ws.pnl)} over ${ws.count} trades`, `Leave ${ws.key} alone until you review those trades`, ws.pnl);
+  const wsess = groupBy(ts, (t) => (t.session && t.session !== 'No session' ? t.session : null), be).filter((g) => g.count >= 2 && g.pnl < 0).sort((a, b) => a.pnl - b.pnl)[0];
+  if (wsess) add(`The ${wsess.key} session cost ${money(wsess.pnl)}`, `Skip ${wsess.key} or trade it at half size`, wsess.pnl);
+
+  // Own rules always shown first
+  const mine = donts.filter(Boolean).map((d) => ({ what: 'Your own rule', avoid: d, cost: null, mine: true }));
+  const seen = new Set();
+  const ranked = items.sort((a, b) => (a.cost ?? 0) - (b.cost ?? 0)).filter((x) => (seen.has(x.what) ? false : seen.add(x.what)));
+  return { from, to, count: ts.length, pnl, items: [...ranked.slice(0, 8), ...mine] };
+}

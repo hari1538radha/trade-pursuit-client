@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Logo, Seg, Toggle, Money, Dialog, Field, Toast, SymbolIcon, ease } from './ui.jsx';
 import { cls, initials, money, usd, kfmt } from '../lib/format.js';
@@ -10,6 +10,7 @@ import { accountMetrics } from '../lib/firms.js';
 import Modals from '../features/Modals.jsx';
 import DailyNudge from './DailyNudge.jsx';
 import CoachDock from './CoachDock.jsx';
+import WeekTicker from './WeekTicker.jsx';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
@@ -20,6 +21,7 @@ const NAV = [
   { to: '/propfirm', label: 'Propfirm', icon: Building2 },
   { to: '/options', label: 'Options', icon: Activity },
   { to: '/stocks', label: 'Stocks', icon: LineChart },
+  { to: '/goldbach', label: 'Goldbach', icon: Gem },
   { to: '/notes', label: 'Notes', icon: NotebookPen },
   { to: '/quiz', label: 'Quiz', icon: GraduationCap },
 ];
@@ -44,6 +46,8 @@ export default function Layout() {
   const [deskOpen, setDesk] = useState(true);
   const [railOpen, setRail] = useState(true);
   const mainRef = useRef(null);
+  // Data-heavy pages use the whole screen: no desk on the left, no rail on the right
+  const wide = /^\/(options|stocks|goldbach)(\/|$)/.test(loc.pathname);
   useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [loc.pathname]);
 
   // Global shortcuts: Q = quick log, N = log trade
@@ -66,7 +70,7 @@ export default function Layout() {
         {api.demo && <span className="chip-top preview">Preview</span>}
         <nav className="navlinks">
           {NAV.map(({ to, label, icon: I, end }) => (
-            <NavLink key={to} to={to} end={end} className={({ isActive }) => cls('navlink', isActive && 'active')}>
+            <NavLink key={to} to={to} end={end} title={label} className={({ isActive }) => cls('navlink', isActive && 'active')}>
               {({ isActive }) => (
                 <>
                   {isActive && <motion.span layoutId="navpill" className="pill" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
@@ -86,8 +90,10 @@ export default function Layout() {
         </button>
       </header>
 
-      <div className="body">
-        <Desk open={deskOpen} toggle={() => setDesk((o) => !o)} />
+      <WeekTicker />
+
+      <div className={cls('body', wide && 'wide')}>
+        {!wide && <Desk open={deskOpen} toggle={() => setDesk((o) => !o)} />}
         <main className="main">
           <div className="main-card" ref={mainRef}>
             <AnimatePresence mode="wait" initial={false}>
@@ -97,7 +103,7 @@ export default function Layout() {
             </AnimatePresence>
           </div>
         </main>
-        <Rail open={railOpen} toggle={() => setRail((o) => !o)} />
+        {!wide && <Rail open={railOpen} toggle={() => setRail((o) => !o)} />}
       </div>
 
       <footer className="footer">

@@ -12,6 +12,7 @@ import Propfirm from './pages/Propfirm.jsx';
 import Strategy from './pages/Strategy.jsx';
 import Options from './pages/Options.jsx';
 import Stocks from './pages/Stocks.jsx';
+import Goldbach from './pages/Goldbach.jsx';
 import Notes from './pages/Notes.jsx';
 import Quiz from './pages/Quiz.jsx';
 import Calm from './pages/Calm.jsx';
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="strategy" element={<Strategy />} />
           <Route path="options" element={<Options />} />
           <Route path="stocks" element={<Stocks />} />
+          <Route path="goldbach" element={<Goldbach />} />
           <Route path="notes" element={<Notes />} />
           <Route path="quiz" element={<Quiz />} />
           <Route path="calm" element={<Calm />} />

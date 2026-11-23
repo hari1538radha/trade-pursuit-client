@@ -82,7 +82,10 @@ export const httpApi = {
     like: (id) => req('POST', `/posts/${id}/like`),
     remove: (id) => req('DELETE', `/posts/${id}`),
   },
-  markets: { range: (symbols) => req('GET', `/markets/range${qs({ symbols: symbols.join(',') })}`) },
+  markets: {
+    range: (symbols) => req('GET', `/markets/range${qs({ symbols: symbols.join(',') })}`),
+    goldbach: (symbol, interval) => req('GET', `/markets/goldbach${qs({ symbol, interval })}`),
+  },
   notes: {
     list: () => req('GET', '/notes'),
     create: (b) => req('POST', '/notes', b),
@@ -94,7 +97,13 @@ export const httpApi = {
     // body: { cookie, underlying, expiry, atm, debug }  (cookie = your own Sensibull session)
     chain: (body) => req('POST', '/options/chain', body),
     history: (key, expiry) => req('GET', `/options/history${qs({ key, expiry })}`),
-    ticks: (key, expiry, since) => req('GET', `/options/ticks${qs({ key, expiry, since })}`),
+    ticks: (key, expiry, since, bucket) => req('GET', `/options/ticks${qs({ key, expiry, since, bucket })}`),
+    live: (key, expiry) => req('GET', `/options/live${qs({ key, expiry })}`),
+    strikeSeries: (key, expiry, strikes, since) => req('GET', `/options/strike-series${qs({ key, expiry, strikes: strikes.join(','), since })}`),
+    recorders: () => req('GET', '/options/recorders'),
+    saveRecorder: (body) => req('PUT', '/options/recorders', body),
+    removeRecorder: (underlying) => req('DELETE', `/options/recorders/${encodeURIComponent(underlying)}`),
+    removeAllRecorders: () => req('DELETE', '/options/recorders'),
   },
   stocks: {
     status: () => req('GET', '/stocks/status'),
