@@ -82,6 +82,11 @@ export const httpApi = {
     like: (id) => req('POST', `/posts/${id}/like`),
     remove: (id) => req('DELETE', `/posts/${id}`),
   },
+  admin: {
+    users: () => req('GET', '/admin/users'),
+    user: (id) => req('GET', `/admin/users/${id}`),
+    setRole: (id, role) => req('PATCH', `/admin/users/${id}/role`, { role }),
+  },
   markets: {
     range: (symbols) => req('GET', `/markets/range${qs({ symbols: symbols.join(',') })}`),
     goldbach: (symbol, interval) => req('GET', `/markets/goldbach${qs({ symbol, interval })}`),

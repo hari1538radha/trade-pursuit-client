@@ -22,7 +22,7 @@ const TONE = {
  * Plus a once-a-day "Before you trade" popup and a post-loss nudge.
  */
 export default function CoachDock() {
-  const { trades, breakEven, settings, updateUser, notify } = useApp();
+  const { trades, breakEven, settings, updateUser, notify, isAdmin } = useApp();
   const nav = useNavigate();
   const lookback = settings.coach?.lookback || 5;
   const [open, setOpen] = useState(() => localStorage.getItem('tp.coach.open') !== '0');
@@ -139,7 +139,7 @@ export default function CoachDock() {
                     </form>
                   </>
                 )}
-                <button className="btn sm" style={{ width: '100%', marginTop: 12 }} onClick={() => nav('/calm')}><Leaf size={14} /> Calm my mind</button>
+                {isAdmin && <button className="btn sm" style={{ width: '100%', marginTop: 12 }} onClick={() => nav('/calm')}><Leaf size={14} /> Calm my mind</button>}
               </div>
             </motion.div>
           )}
@@ -160,7 +160,7 @@ export default function CoachDock() {
                 {week.items.slice(0, 6).map((a, i) => <li key={i}><b>{a.avoid}</b>{!a.mine && <span>{a.what}</span>}</li>)}
               </ol>
               <div className="row" style={{ marginTop: 18 }}>
-                <button className="btn" onClick={() => { setBrief(false); nav('/calm'); }}><Leaf size={15} /> Calm first</button>
+                {isAdmin && <button className="btn" onClick={() => { setBrief(false); nav('/calm'); }}><Leaf size={15} /> Calm first</button>}
                 <button className="btn primary grow" onClick={() => { localStorage.setItem('tp.brief', today()); setBrief(false); }}><Check size={16} /> I'll avoid these today</button>
               </div>
             </motion.div>
@@ -177,7 +177,7 @@ export default function CoachDock() {
               {nudge.neg.length ? `You tagged ${nudge.neg.join(', ').toLowerCase()}. ` : ''}{!nudge.followedPlan ? 'That one was off-plan. ' : ''}
               {avoid[0] ? `Top rule right now: ${avoid[0].text.toLowerCase()}.` : 'Breathe, re-read your plan, then decide.'}
             </p>
-            <div className="row"><button className="btn sm" onClick={() => { setNudge(null); nav('/calm'); }}><Leaf size={14} /> 2-minute reset</button><button className="btn sm ghost" onClick={() => setNudge(null)}>I'm fine</button></div>
+            <div className="row">{isAdmin && <button className="btn sm" onClick={() => { setNudge(null); nav('/calm'); }}><Leaf size={14} /> 2-minute reset</button>}<button className="btn sm ghost" onClick={() => setNudge(null)}>I'm fine</button></div>
           </motion.div>
         )}
       </AnimatePresence>

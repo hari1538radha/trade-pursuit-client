@@ -88,6 +88,7 @@ export function AppProvider({ children }) {
     openModal: (type, props = {}) => setModal({ type, props }), closeModal: () => setModal(null),
     ask, confirmAsk: (msg, type) => new Promise((resolve) => setAsk({ msg, type, resolve })), closeAsk: (v) => { ask?.resolve(v); setAsk(null); },
     settings: user?.settings || {}, breakEven: user?.settings?.breakEven || 0,
+    isAdmin: user?.role === 'admin',
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

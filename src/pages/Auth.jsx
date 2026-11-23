@@ -33,7 +33,7 @@ export default function Auth() {
         <motion.form onSubmit={submit} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }} style={{ width: 'min(400px,100%)' }} className="col">
           <div style={{ marginBottom: 26 }}><Seg size="lg" options={[{ value: 'login', label: 'Sign in' }, { value: 'register', label: 'Create account' }]} value={mode} onChange={(m) => { setMode(m); setErr(''); }} /></div>
           <h2 style={{ fontSize: 34, margin: '0 0 6px', letterSpacing: '-.03em' }}>{mode === 'login' ? 'Welcome back' : 'Start journaling'}</h2>
-          <p className="muted" style={{ marginTop: 0 }}>{mode === 'login' ? 'Username and password. That’s it.' : 'Pick a username your friends will recognise. Free, no card.'}</p>
+          <p className="muted" style={{ marginTop: 0 }}>{mode === 'login' ? 'Username and password. That’s it.' : 'Pick a username your friends will recognise. Free, no card. The site’s admins can see your journal and trades.'}</p>
           <div className="col" style={{ gap: 14, marginTop: 14 }}>
             <Field label="Username"><input className="input" autoFocus autoComplete="username" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} placeholder="hari_trades" /></Field>
             <AnimatePresence>

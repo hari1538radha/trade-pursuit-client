@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Users, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Logo, Seg, Toggle, Money, Dialog, Field, Toast, SymbolIcon, ease } from './ui.jsx';
 import { cls, initials, money, usd, kfmt } from '../lib/format.js';
@@ -19,11 +19,12 @@ const NAV = [
   { to: '/strategy', label: 'Strategy', icon: Target },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/propfirm', label: 'Propfirm', icon: Building2 },
-  { to: '/options', label: 'Options', icon: Activity },
-  { to: '/stocks', label: 'Stocks', icon: LineChart },
-  { to: '/goldbach', label: 'Goldbach', icon: Gem },
-  { to: '/notes', label: 'Notes', icon: NotebookPen },
-  { to: '/quiz', label: 'Quiz', icon: GraduationCap },
+  { to: '/options', label: 'Options', icon: Activity, admin: true },
+  { to: '/stocks', label: 'Stocks', icon: LineChart, admin: true },
+  { to: '/goldbach', label: 'Goldbach', icon: Gem, admin: true },
+  { to: '/notes', label: 'Notes', icon: NotebookPen, admin: true },
+  { to: '/quiz', label: 'Quiz', icon: GraduationCap, admin: true },
+  { to: '/traders', label: 'Traders', icon: Users, admin: true },
 ];
 
 export function ThemeToggle() {
@@ -41,13 +42,13 @@ export function ThemeToggle() {
 }
 
 export default function Layout() {
-  const { user, mode, setMode, openModal, api, settings } = useApp();
+  const { user, mode, setMode, openModal, api, settings, isAdmin } = useApp();
   const loc = useLocation();
   const [deskOpen, setDesk] = useState(true);
   const [railOpen, setRail] = useState(true);
   const mainRef = useRef(null);
   // Data-heavy pages use the whole screen: no desk on the left, no rail on the right
-  const wide = /^\/(options|stocks|goldbach)(\/|$)/.test(loc.pathname);
+  const wide = /^\/(options|stocks|goldbach|traders)(\/|$)/.test(loc.pathname);
   useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [loc.pathname]);
 
   // Global shortcuts: Q = quick log, N = log trade
@@ -68,8 +69,8 @@ export default function Layout() {
         <Logo />
         <span className="brand">Trade Pursuit</span>
         {api.demo && <span className="chip-top preview">Preview</span>}
-        <nav className="navlinks">
-          {NAV.map(({ to, label, icon: I, end }) => (
+        <nav className={cls('navlinks', isAdmin && 'many')}>
+          {NAV.filter((n) => isAdmin || !n.admin).map(({ to, label, icon: I, end }) => (
             <NavLink key={to} to={to} end={end} title={label} className={({ isActive }) => cls('navlink', isActive && 'active')}>
               {({ isActive }) => (
                 <>
@@ -80,7 +81,7 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <NavLink to="/calm" className={({ isActive }) => cls('btn sm', isActive && 'primary')} title="Mind Calm"><Leaf size={15} /> Calm</NavLink>
+        {isAdmin && <NavLink to="/calm" className={({ isActive }) => cls('btn sm', isActive && 'primary')} title="Mind Calm"><Leaf size={15} /> Calm</NavLink>}
         <button className="btn sm" onClick={() => openModal('quick')} title="Quick log (Q)"><Plus size={15} /> Quick log</button>
         <ThemeToggle />
         <button className="icon-btn" onClick={() => openModal('settings')} title="Settings"><Settings size={18} /></button>
@@ -96,11 +97,10 @@ export default function Layout() {
         {!wide && <Desk open={deskOpen} toggle={() => setDesk((o) => !o)} />}
         <main className="main">
           <div className="main-card" ref={mainRef}>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div key={loc.pathname} initial={{ opacity: 0, y: 18, scale: 0.99, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }} exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }} transition={{ duration: 0.32, ease }} style={{ position: 'relative', zIndex: 1 }}>
-                <Outlet />
-              </motion.div>
-            </AnimatePresence>
+            {/* Plain keyed fade-in (no exit animation): AnimatePresence "wait" could leave a page blank */}
+            <motion.div key={loc.pathname} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease }} style={{ position: 'relative', zIndex: 1 }}>
+              <Outlet />
+            </motion.div>
           </div>
         </main>
         {!wide && <Rail open={railOpen} toggle={() => setRail((o) => !o)} />}

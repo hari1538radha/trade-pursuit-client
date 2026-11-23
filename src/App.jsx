@@ -17,12 +17,15 @@ import Notes from './pages/Notes.jsx';
 import Quiz from './pages/Quiz.jsx';
 import Calm from './pages/Calm.jsx';
 import News from './pages/News.jsx';
+import Traders from './pages/Traders.jsx';
 
 // In-memory routing in the static preview, clean URLs when served by the API server.
 const Router = import.meta.env.VITE_DEMO === 'true' ? MemoryRouter : BrowserRouter;
 
 export default function App() {
-  const { user, booting } = useApp();
+  const { user, booting, isAdmin } = useApp();
+  // Admin-only pages: users are sent back to the dashboard
+  const admin = (el) => (isAdmin ? el : <Navigate to="/" replace />);
   const [slow, setSlow] = useState(false);
   useEffect(() => { const t = setTimeout(() => setSlow(true), 4000); return () => clearTimeout(t); }, []);
   if (booting) return (
@@ -43,13 +46,15 @@ export default function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="propfirm" element={<Propfirm />} />
           <Route path="strategy" element={<Strategy />} />
-          <Route path="options" element={<Options />} />
-          <Route path="stocks" element={<Stocks />} />
-          <Route path="goldbach" element={<Goldbach />} />
-          <Route path="notes" element={<Notes />} />
-          <Route path="quiz" element={<Quiz />} />
-          <Route path="calm" element={<Calm />} />
+          <Route path="options" element={admin(<Options />)} />
+          <Route path="stocks" element={admin(<Stocks />)} />
+          <Route path="goldbach" element={admin(<Goldbach />)} />
+          <Route path="notes" element={admin(<Notes />)} />
+          <Route path="quiz" element={admin(<Quiz />)} />
+          <Route path="calm" element={admin(<Calm />)} />
           <Route path="news" element={<News />} />
+          <Route path="traders" element={admin(<Traders />)} />
+          <Route path="traders/:id" element={admin(<Traders />)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

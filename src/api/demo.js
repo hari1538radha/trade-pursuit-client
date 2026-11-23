@@ -273,6 +273,36 @@ export const demoApi = {
     },
     async remove(pid) { const uid = me().id; db.posts = db.posts.filter((p) => !(p.id === pid && p.user === uid)); save(); return wait({ ok: true }); },
   },
+  admin: {
+    async users() {
+      if (me().role !== 'admin') throw fail(403, 'This page is for admins only');
+      return wait({ users: db.users.map((u) => {
+        const stats = {};
+        for (const mode of ['live', 'paper']) {
+          const ts = db.trades.filter((t) => t.user === u.id && (t.mode || 'live') === mode && !t.noTrade);
+          if (!ts.length) continue;
+          const ds = ts.map((t) => t.date).sort();
+          stats[mode] = { trades: ts.length, pnl: ts.reduce((a, t) => a + (t.pnl || 0), 0), wins: ts.filter((t) => t.pnl > 0).length, losses: ts.filter((t) => t.pnl < 0).length, offPlan: ts.filter((t) => t.followedPlan === false).length, first: ds[0], last: ds.at(-1) };
+        }
+        return { id: u.id, username: u.username, displayName: u.displayName, role: u.role || 'user', joined: u.createdAt, stats };
+      }) });
+    },
+    async user(uid) {
+      if (me().role !== 'admin') throw fail(403, 'This page is for admins only');
+      const u = db.users.find((x) => x.id === uid); if (!u) throw fail(404, 'Trader not found');
+      return wait({
+        user: { id: u.id, username: u.username, displayName: u.displayName, role: u.role || 'user', joined: u.createdAt, bio: u.bio, settings: { breakEven: u.settings?.breakEven || 0, donts: u.settings?.donts || [] } },
+        accounts: db.accounts.filter((a) => a.user === uid),
+        trades: db.trades.filter((t) => t.user === uid).sort((a, b) => b.date.localeCompare(a.date)),
+        plans: db.plans.filter((p) => p.user === uid).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30),
+      });
+    },
+    async setRole(uid, role) {
+      const u = db.users.find((x) => x.id === uid); if (!u) throw fail(404, 'Trader not found');
+      if (role === 'user' && uid === me().id && !db.users.some((x) => x.id !== uid && x.role === 'admin')) throw fail(400, "You're the only admin. Make someone else admin first.");
+      u.role = role; save(); return wait({ ok: true, role });
+    },
+  },
   markets: {
     async range() { throw fail(503, 'live prices need the API server'); },
     // Sample candles for the Goldbach page (clearly labelled as sample data)
@@ -425,6 +455,17 @@ export const demoApi = {
         });
       }
     }
+    me().role = 'admin';
+    // Two sample friends (normal users) so the admin Traders page has people to show
+    const mine = db.trades.filter((t) => t.user === uid);
+    [['priya_fx', 'Priya', 0.8], ['rahul.nq', 'Rahul', 1.35]].forEach(([uname, dname, k], fi) => {
+      if (db.users.some((x) => x.username === uname)) return;
+      const f = newUser(uname, 'x', dname); f.role = 'user'; db.users.push(f);
+      const acc = { ...fp, id: id(), user: f.id, name: fi ? 'Apex 50K' : 'FTMO 100K', firmName: fi ? 'Apex Trader Funding' : 'FTMO', size: fi ? 50000 : 100000 };
+      db.accounts.push(acc);
+      let s2 = 31 + fi * 17; const r2 = () => ((s2 = (s2 * 16807) % 2147483647) / 2147483647);
+      for (const t of mine) if (r2() < 0.8) db.trades.push({ ...t, id: id(), user: f.id, accounts: [acc.id], pnl: Math.round(t.pnl * k * (0.6 + r2() * 0.8) - (t.followedPlan ? 0 : 60 * k)) });
+    });
     save();
     return { token };
   },
