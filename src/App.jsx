@@ -1,0 +1,54 @@
+import { MemoryRouter, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useApp } from './store/AppContext.jsx';
+import { Logo } from './components/ui.jsx';
+import Layout from './components/Layout.jsx';
+import Auth from './pages/Auth.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import Journal from './pages/Journal.jsx';
+import Analytics from './pages/Analytics.jsx';
+import Propfirm from './pages/Propfirm.jsx';
+import Strategy from './pages/Strategy.jsx';
+import Options from './pages/Options.jsx';
+import Stocks from './pages/Stocks.jsx';
+import Notes from './pages/Notes.jsx';
+import Quiz from './pages/Quiz.jsx';
+import Calm from './pages/Calm.jsx';
+
+// In-memory routing in the static preview, clean URLs when served by the API server.
+const Router = import.meta.env.VITE_DEMO === 'true' ? MemoryRouter : BrowserRouter;
+
+export default function App() {
+  const { user, booting } = useApp();
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setSlow(true), 4000); return () => clearTimeout(t); }, []);
+  if (booting) return (
+    <div style={{ height: '100vh', display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+      <div>
+        <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 1.4 }} style={{ display: 'inline-block' }}><Logo size={48} /></motion.div>
+        {slow && <p className="muted" style={{ marginTop: 18 }}>Waking up the server. The first load after a quiet spell can take up to a minute.</p>}
+      </div>
+    </div>
+  );
+  if (!user) return <Auth />;
+  return (
+    <Router>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="journal" element={<Journal />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="propfirm" element={<Propfirm />} />
+          <Route path="strategy" element={<Strategy />} />
+          <Route path="options" element={<Options />} />
+          <Route path="stocks" element={<Stocks />} />
+          <Route path="notes" element={<Notes />} />
+          <Route path="quiz" element={<Quiz />} />
+          <Route path="calm" element={<Calm />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
+}
