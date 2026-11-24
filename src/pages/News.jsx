@@ -4,6 +4,7 @@ import { ChevronDown, Check, Search, RefreshCw, CalendarPlus, Newspaper, Clock, 
 import { useApp } from '../store/AppContext.jsx';
 import { Seg, Empty, Reveal } from '../components/ui.jsx';
 import { cls } from '../lib/format.js';
+import Board from '../components/Board.jsx';
 
 const FLAGS = { USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', AUD: '🇦🇺', CAD: '🇨🇦', CHF: '🇨🇭', NZD: '🇳🇿', CNY: '🇨🇳', INR: '🇮🇳', KRW: '🇰🇷', ILS: '🇮🇱', ALL: '🌐' };
 const IMPACTS = [['high', 'High'], ['medium', 'Medium'], ['low', 'Low'], ['none', 'No impact']];
@@ -79,8 +80,8 @@ export default function News() {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   return (
-    <div className="page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="news" className="page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Economic Calendar</h1>
           <div className="muted">Times in your time zone ({tz}){data?.updatedAt && ` · updated ${new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}</div>
@@ -153,7 +154,7 @@ export default function News() {
         )}
       </div>
       <p className="dim" style={{ fontSize: 12, marginTop: 12 }}>Source: Forex Factory weekly calendar export. Check your broker or the official release before trading the number.</p>
-    </div>
+    </Board>
   );
 }
 

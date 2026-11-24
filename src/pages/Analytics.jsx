@@ -13,6 +13,7 @@ import { LineChart, Line } from 'recharts';
 import { improvementPlan, avoidList } from '../lib/coach.js';
 import { tradeScore } from '../lib/stats.js';
 import { weekStart } from '../lib/dates.js';
+import Board from '../components/Board.jsx';
 
 const TABS = ['Overview', 'Coach', 'Performance', 'Time', 'Psychology', 'Insights', 'Risk'];
 const G = 'var(--green)', R = 'var(--red)';
@@ -36,8 +37,8 @@ export default function Analytics() {
   if (!real(all).length) return <div className="page"><Empty icon={<BarChart3 />} title="Nothing to analyse yet">Log a few trades and every chart here fills in. All analytics are free.</Empty></div>;
 
   return (
-    <div className="page">
-      <div className="row between wrap" style={{ gap: 12, position: 'sticky', top: -26, zIndex: 5, background: 'var(--bg2)', padding: '12px 0' }}>
+    <Board id="analytics" className="page">
+      <div data-fixed className="page-head row between wrap sticky-head" style={{ gap: 12 }}>
         <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Analytics</h1><div className="muted">{s.count} trades analysed</div></div>
         <Seg options={TABS} value={tab} onChange={go} size="lg" />
         <div className="row">
@@ -95,7 +96,7 @@ export default function Analytics() {
         <BigTitle tagline="How much you give back, and how fast.">Risk</BigTitle>
         <Risk trades={trades} be={breakEven} />
       </section>
-    </div>
+    </Board>
   );
 }
 

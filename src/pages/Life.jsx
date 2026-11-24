@@ -5,6 +5,7 @@ import { useApp } from '../store/AppContext.jsx';
 import { Reveal, Toggle, Field } from '../components/ui.jsx';
 import { DEFAULT_LIFE, dayScores, habitStreak, ymdOf } from '../lib/personal.js';
 import { cls } from '../lib/format.js';
+import Board from '../components/Board.jsx';
 
 const AX = { tickLine: false, axisLine: false, tick: { fontSize: 12, fill: 'var(--text2)' } };
 const TT = { contentStyle: { background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: 10, fontSize: 13 } };
@@ -59,8 +60,8 @@ export default function Life() {
 
   if (!days) return <div className="page"><p className="muted">Loading…</p></div>;
   return (
-    <div className="page wide-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="lifestyle" className="page wide-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><HeartPulse size={22} /> Lifestyle</h1>
           <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>Habits, health, diet and weight, scored every day. Only you (admin) can see this.</div>
@@ -85,10 +86,10 @@ export default function Life() {
         ))}
       </div>
 
-      {setup && <Setup life={life} onSave={(n) => { saveLife(n); notify('Saved'); }} onClose={() => setSetup(false)} />}
+      {setup && <Setup data-free life={life} onSave={(n) => { saveLife(n); notify('Saved'); }} onClose={() => setSetup(false)} />}
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))' }}>
-        <Reveal className="card" style={{ marginTop: 16 }}>
+      <>
+        <Reveal data-span={4} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Habits</h3>
           <div className="col" style={{ gap: 8, marginTop: 12 }}>
             {life.habits.map((h) => {
@@ -107,7 +108,7 @@ export default function Life() {
           {tradesOn(date).length > 0 && <p className="muted" style={{ fontSize: 13, marginBottom: 0 }}>Trading plan today: {s.trading}% of {tradesOn(date).filter((t) => !t.noTrade).length} trades on plan (counts toward discipline).</p>}
         </Reveal>
 
-        <Reveal className="card" style={{ marginTop: 16 }}>
+        <Reveal data-span={4} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Body & mind</h3>
           <div className="life-metrics">
             {METRICS.map(([k, l, u, step]) => (
@@ -127,7 +128,7 @@ export default function Life() {
           ))}
         </Reveal>
 
-        <Reveal className="card" style={{ marginTop: 16 }}>
+        <Reveal data-span={4} className="card" style={{ marginTop: 16 }}>
           <h3 className="row" style={{ margin: 0, fontSize: 17 }}><Salad size={17} /> Diet</h3>
           <div className="fgrid" style={{ marginTop: 10 }}>
             <Field label="Calories" hint={`target ${life.targets.calories}`}><input className="input" type="number" inputMode="numeric" value={draft.calories ?? ''} onChange={(e) => patch({ calories: e.target.value === '' ? null : +e.target.value })} /></Field>
@@ -141,14 +142,14 @@ export default function Life() {
           <div className="row between" style={{ marginTop: 6 }}><span className="muted" style={{ fontSize: 13.5 }}>Ate junk food today</span><Toggle on={!!draft.junk} onChange={(v) => patch({ junk: v })} /></div>
           {life.dietPlan.rules && <p className="dim" style={{ fontSize: 12.5, marginBottom: 0 }}>Your rules: {life.dietPlan.rules}</p>}
         </Reveal>
-      </div>
+      </>
 
       <Reveal className="card" style={{ marginTop: 16 }}>
         <Field label="Note for the day"><textarea className="input" rows={2} value={draft.note || ''} onChange={(e) => patch({ note: e.target.value })} placeholder="How did today go?" /></Field>
       </Reveal>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,520px),1fr))' }}>
-        <Reveal className="card" style={{ marginTop: 16 }}>
+      <>
+        <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Scores, last 30 days</h3>
           <div style={{ height: 260, marginTop: 12 }}>
             <ResponsiveContainer>
@@ -165,7 +166,7 @@ export default function Life() {
             </ResponsiveContainer>
           </div>
         </Reveal>
-        <Reveal className="card" style={{ marginTop: 16 }}>
+        <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Weight</h3>
           <div className="sub" style={{ fontSize: 13, marginTop: 4 }}>{wNow ? `${wNow} kg now${wStart && wStart !== wNow ? ` · ${(wNow - wStart > 0 ? '+' : '')}${(wNow - wStart).toFixed(1)} kg in 30 days` : ''}${life.weightGoal ? ` · ${Math.abs(wNow - life.weightGoal).toFixed(1)} kg to goal` : ''}` : 'Log your weight to see the trend'}</div>
           <div style={{ height: 240, marginTop: 10 }}>
@@ -181,10 +182,10 @@ export default function Life() {
             </ResponsiveContainer>
           </div>
         </Reveal>
-      </div>
+      </>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,520px),1fr))' }}>
-        <Reveal className="card" style={{ marginTop: 16 }}>
+      <>
+        <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Habit calendar, last 4 weeks</h3>
           <div style={{ overflowX: 'auto', marginTop: 12 }}>
             <table className="habit-grid">
@@ -195,7 +196,7 @@ export default function Life() {
             </table>
           </div>
         </Reveal>
-        <Reveal className="card" style={{ marginTop: 16 }}>
+        <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Sleep and steps, last 30 days</h3>
           <div style={{ height: 240, marginTop: 12 }}>
             <ResponsiveContainer>
@@ -213,7 +214,7 @@ export default function Life() {
             </ResponsiveContainer>
           </div>
         </Reveal>
-      </div>
+      </>
 
       <Reveal className="card" style={{ marginTop: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16 }}>How the scores work</h3>
@@ -226,7 +227,7 @@ export default function Life() {
           <li><b>Lifestyle</b>: the average of habits, health, diet and mind. Parts you didn't log are left out, not counted as zero.</li>
         </ul>
       </Reveal>
-    </div>
+    </Board>
   );
 }
 

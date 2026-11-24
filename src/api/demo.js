@@ -6,7 +6,7 @@ import { fetchNewsDirect } from './news.js';
 import { ymd, addDays, parseYmd } from '../lib/dates.js';
 import { UNDERLYINGS, normalizeChain, chainStats, marketOpen, tickDelta } from '../lib/market/options.js';
 const demoLive = new Map(); const demoTicks = [];
-const pkey = (kind) => ({ 'money/entries': 'entries', 'money/emis': 'emis', 'props/purchases': 'purchases', 'props/payouts': 'payouts' }[kind] || kind);
+const pkey = (kind) => ({ 'money/entries': 'entries', 'money/emis': 'emis', 'money/holdings': 'holdings', 'props/purchases': 'purchases', 'props/payouts': 'payouts' }[kind] || kind);
 /** Preview only: a month of sample expenses/income, two EMIs and 3 weeks of lifestyle logs for the admin */
 function seedPersonal() {
   db.personal ||= {};

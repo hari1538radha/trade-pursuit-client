@@ -5,6 +5,7 @@ import { useApp } from '../store/AppContext.jsx';
 import { Seg, Reveal, Toggle } from '../components/ui.jsx';
 import { spikes as findSpikes } from '../lib/market/options.js';
 import { cls } from '../lib/format.js';
+import Board from '../components/Board.jsx';
 
 // Calls red, puts green everywhere on this page
 const RED = '#f0616d', GREEN = '#2fbf8f', PURPLE = '#a78bfa';
@@ -203,8 +204,8 @@ export default function Options() {
   const source = demo ? 'Sample data' : serverOn ? 'Server recording' : session ? 'This page (Sensibull)' : 'No source';
 
   return (
-    <div className="page wide-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="options" className="page wide-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><Activity size={22} /> Option Chain</h1>
           <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>
@@ -385,7 +386,7 @@ export default function Options() {
           <p className="dim" style={{ fontSize: 12, marginTop: 14 }}>Data from your own Sensibull session. PCR, max pain, bias and support/resistance are calculations to help read the chain, not trade recommendations.</p>
         </>
       )}
-    </div>
+    </Board>
   );
 }
 

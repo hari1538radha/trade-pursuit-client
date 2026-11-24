@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Users, HandCoins, Wallet, HeartPulse, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Users, HandCoins, Wallet, HeartPulse, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal, LayoutDashboard, Check, RotateCcw } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Logo, Seg, Toggle, Money, Dialog, Field, Toast, SymbolIcon, ease } from './ui.jsx';
 import { cls, initials, money, usd, kfmt } from '../lib/format.js';
@@ -11,6 +11,9 @@ import Modals from '../features/Modals.jsx';
 import DailyNudge from './DailyNudge.jsx';
 import CoachDock from './CoachDock.jsx';
 import WeekTicker from './WeekTicker.jsx';
+import AutoPass from './AutoPass.jsx';
+import QuotePop from './QuotePop.jsx';
+import { LayoutEdit, useResetLayout } from './Board.jsx';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
@@ -44,9 +47,24 @@ export function ThemeToggle() {
   );
 }
 
+const useMedia = (q) => {
+  const [m, setM] = useState(() => window.matchMedia(q).matches);
+  useEffect(() => { const mq = window.matchMedia(q); const f = () => setM(mq.matches); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, [q]);
+  return m;
+};
+const ADMIN_PATHS = /^\/(options|stocks|goldbach|notes|quiz|calm|payouts|money|lifestyle|traders)(\/|$)/;
+export const boardIdFor = (path) => (path.split('/')[1] || 'dashboard');
+
 export default function Layout() {
-  const { user, mode, setMode, openModal, api, settings, isAdmin } = useApp();
+  const { user, mode, setMode, openModal, api, settings, isAdmin, notify } = useApp();
   const loc = useLocation();
+  const big = useMedia('(min-width:1025px)');
+  // Admin-only pages keep the desktop layout on phones and tablets (scroll sideways)
+  const forceDesktop = !big && ADMIN_PATHS.test(loc.pathname);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { if (!big) setEditing(false); }, [big]);
+  const resetLayout = useResetLayout();
+  const edit = useMemo(() => ({ editing: editing && big, setEditing, desktop: big || forceDesktop }), [editing, big, forceDesktop]);
   const [deskOpen, setDesk] = useState(true);
   const [railOpen, setRail] = useState(true);
   const mainRef = useRef(null);
@@ -67,7 +85,8 @@ export default function Layout() {
   }, [openModal]);
 
   return (
-    <div className="shell">
+    <LayoutEdit.Provider value={edit}>
+    <div className={cls('shell', forceDesktop && 'force-desktop', edit.editing && 'layout-editing')}>
       <header className="topnav">
         <Logo />
         <span className="brand">Trade Pursuit</span>
@@ -86,6 +105,7 @@ export default function Layout() {
         </nav>
         {isAdmin && <NavLink to="/calm" className={({ isActive }) => cls('btn sm top-calm', isActive && 'primary')} title="Mind Calm"><Leaf size={15} /> Calm</NavLink>}
         <button className="btn sm top-quick" onClick={() => openModal('quick')} title="Quick log (Q)"><Plus size={15} /> Quick log</button>
+        <button className={cls('icon-btn top-layout', editing && 'on')} onClick={() => setEditing((v) => !v)} title="Customize layout: drag and resize the blocks on this page" aria-pressed={editing}><LayoutDashboard size={17} /></button>
         <ThemeToggle />
         <button className="icon-btn top-settings" onClick={() => openModal('settings')} title="Settings"><Settings size={18} /></button>
         <button className="row" onClick={() => openModal('settings')} style={{ gap: 10 }} aria-label="Settings and profile">
@@ -93,8 +113,6 @@ export default function Layout() {
           <span className="avatar">{initials(user.displayName)}</span>
         </button>
       </header>
-
-      <WeekTicker />
 
       <div className={cls('body', wide && 'wide')}>
         {!wide && <Desk open={deskOpen} toggle={() => setDesk((o) => !o)} />}
@@ -109,6 +127,8 @@ export default function Layout() {
         {!wide && <Rail open={railOpen} toggle={() => setRail((o) => !o)} />}
       </div>
 
+      <WeekTicker />
+
       <footer className="footer">
         <Seg options={[{ value: 'live', label: 'Live money' }, { value: 'paper', label: 'Paper money' }]} value={mode} onChange={setMode} />
         <span className="dim">Press <b className="muted">Q</b> quick log · <b className="muted">N</b> full log</span>
@@ -117,11 +137,24 @@ export default function Layout() {
         </span>
       </footer>
       <TabBar />
+      <AutoPass />
       <Modals />
       <DailyNudge />
       <CoachDock />
+      <QuotePop />
       <Toast />
+      <AnimatePresence>
+        {edit.editing && (
+          <motion.div className="edit-bar" initial={{ y: 30, opacity: 0, x: '-50%' }} animate={{ y: 0, opacity: 1, x: '-50%' }} exit={{ y: 30, opacity: 0, x: '-50%' }}>
+            <LayoutDashboard size={16} />
+            <span><b>Customize layout</b> <span className="muted">· drag ⠿ to move · drag a corner to resize</span></span>
+            <button className="btn sm ghost" onClick={async () => { await resetLayout(boardIdFor(loc.pathname)); notify('Layout reset for this page'); }}><RotateCcw size={13} /> Reset page</button>
+            <button className="btn sm primary" onClick={() => setEditing(false)}><Check size={14} /> Done</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+    </LayoutEdit.Provider>
   );
 }
 

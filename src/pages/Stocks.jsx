@@ -7,6 +7,7 @@ import { Seg, Reveal, Empty } from '../components/ui.jsx';
 import { SETUPS } from '../lib/market/scanner.js';
 import { cls } from '../lib/format.js';
 import { lakh } from './Options.jsx';
+import Board from '../components/Board.jsx';
 
 const inr = (v, d = 2) => (v == null || !Number.isFinite(v) ? '—' : `₹${v.toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: d })}`);
 const pctf = (v) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`);
@@ -53,8 +54,8 @@ export default function Stocks() {
 
   const running = status?.job?.running;
   return (
-    <div className="page wide-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="stocks" className="page wide-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><LineIco size={22} /> Stocks</h1>
           <div className="muted">NSE end-of-day scan{status?.lastDate ? ` · data for ${new Date(status.lastDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}{status?.symbols ? ` · ${status.symbols.toLocaleString('en-IN')} stocks` : ''}{status?.demo && <span className="tag" style={{ marginLeft: 8, color: 'var(--gold)' }}>Sample data</span>}</div>
@@ -132,8 +133,8 @@ export default function Stocks() {
         <Watchlist items={watch} setItems={setWatch} onOpen={setOpen} />
       )}
       <p className="dim" style={{ fontSize: 12, marginTop: 16 }}>Scans run on NSE's public end-of-day files (equity series EQ/BE). Levels and setups are calculations, not investment advice. Splits and bonuses can distort history; suspicious jumps are excluded.</p>
-      <StockDrawer symbol={open} onClose={() => setOpen(null)} inWatch={inWatch} onAdd={addWatch} onRemove={removeWatch} />
-    </div>
+      <StockDrawer data-free symbol={open} onClose={() => setOpen(null)} inWatch={inWatch} onAdd={addWatch} onRemove={removeWatch} />
+    </Board>
   );
 }
 
@@ -141,10 +142,21 @@ function Watchlist({ items, setItems, onOpen }) {
   const { api } = useApp();
   const save = async (w, patch) => { const { item } = await api.watchlist.update(w.id, patch); setItems((x) => x.map((y) => (y.id === w.id ? { ...y, ...item } : y))); };
   if (!items.length) return <Empty icon={<Star />} title="Your list is empty">Star stocks from the scanner. Each saves with its setup, a trigger, a stop based on support or volatility, and a target at the next resistance. Edit any of them.</Empty>;
+  const pos = items.map(position).filter(Boolean);
+  const invested = pos.reduce((s, p) => s + p.invested, 0), value = pos.reduce((s, p) => s + (p.value ?? p.invested), 0), pnl = pos.reduce((s, p) => s + (p.pnl ?? 0), 0);
   return (
+    <>
+    {pos.length > 0 && (
+      <div className="stat-row" style={{ marginTop: 16 }}>
+        <div className="card stat"><div className="label">Invested</div><div className="val">{inr(invested)}</div><div className="sub">{pos.length} holding{pos.length === 1 ? '' : 's'}</div></div>
+        <div className="card stat"><div className="label">Current value</div><div className="val">{inr(value)}</div><div className="sub">at last close</div></div>
+        <div className="card stat"><div className="label">Returns</div><div className={cls('val', pnl >= 0 ? 'pos' : 'neg')}>{pnl >= 0 ? '+' : '−'}{inr(Math.abs(pnl))}</div><div className="sub">{invested ? pctf((pnl / invested) * 100) : ''}</div></div>
+      </div>
+    )}
     <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,340px),1fr))', marginTop: 16 }}>
       {items.map((w, i) => {
         const now = w.now;
+        const p = position(w);
         const move = now && w.addedClose ? (now.close / w.addedClose - 1) * 100 : null;
         const triggered = now && w.entry && (w.side === 'short' ? now.close <= w.entry : now.close >= w.entry);
         const stopped = now && w.stop && (w.side === 'short' ? now.close >= w.stop : now.close <= w.stop);
@@ -161,6 +173,19 @@ function Watchlist({ items, setItems, onOpen }) {
                   <input className="input" style={{ padding: '7px 9px', fontSize: 13 }} defaultValue={w[k] ?? ''} onBlur={(e) => { const v = e.target.value === '' ? null : +e.target.value; if (v !== w[k]) save(w, { [k]: v }); }} /></label>
               ))}
             </div>
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(2,1fr)', gap: 8, marginTop: 8 }}>
+              {[['Quantity', 'qty'], ['Buy price (₹)', 'buyPrice']].map(([l, k]) => (
+                <label key={k} className="col" style={{ gap: 4 }}><span className="dim" style={{ fontSize: 11 }}>{l}</span>
+                  <input className="input" inputMode="decimal" style={{ padding: '7px 9px', fontSize: 13 }} defaultValue={w[k] ?? ''} placeholder={k === 'buyPrice' && w.entry ? String(w.entry) : ''} onBlur={(e) => { const v = e.target.value === '' ? null : Math.max(0, +e.target.value); if (v !== (w[k] ?? null) && !Number.isNaN(v)) save(w, { [k]: v }); }} /></label>
+              ))}
+            </div>
+            {p && (
+              <div className="kv" style={{ marginTop: 10 }}>
+                <span>Invested</span><b>{inr(p.invested)}</b>
+                {p.value != null && <><span>Value now</span><b>{inr(p.value)}</b></>}
+                {p.pnl != null && <><span>Returns</span><b className={p.pnl >= 0 ? 'pos' : 'neg'}>{p.pnl >= 0 ? '+' : '−'}{inr(Math.abs(p.pnl))} ({pctf(p.pct)})</b></>}
+              </div>
+            )}
             {w.entry && w.stop && w.target && <div className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>Reward:risk {(Math.abs(w.target - w.entry) / Math.max(0.01, Math.abs(w.entry - w.stop))).toFixed(1)}</div>}
             <textarea className="textarea" style={{ minHeight: 50, marginTop: 10, fontSize: 13 }} placeholder="Plan for this stock…" defaultValue={w.note} onBlur={(e) => e.target.value !== w.note && save(w, { note: e.target.value })} />
             <div className="row between" style={{ marginTop: 8 }}>
@@ -171,7 +196,19 @@ function Watchlist({ items, setItems, onOpen }) {
         );
       })}
     </div>
+    </>
   );
+}
+
+/** Quantity × buy price (falls back to the trigger price) against the last close; shorts gain when price falls */
+function position(w) {
+  const qty = +w.qty, buy = +(w.buyPrice ?? w.entry);
+  if (!(qty > 0) || !(buy > 0)) return null;
+  const invested = qty * buy;
+  const close = w.now?.close;
+  if (!close) return { invested, value: null, pnl: null, pct: null };
+  const pnl = (w.side === 'short' ? buy - close : close - buy) * qty;
+  return { invested, value: invested + pnl, pnl, pct: (pnl / invested) * 100 };
 }
 
 function StockDrawer({ symbol, onClose, inWatch, onAdd, onRemove }) {

@@ -9,6 +9,7 @@ import Calendar from '../components/Calendar.jsx';
 import ExecutionStats from '../components/ExecutionStats.jsx';
 import RangeCheck from '../components/RangeCheck.jsx';
 import PremarketCard from '../components/PremarketCard.jsx';
+import Board from '../components/Board.jsx';
 import { summary, cumulative, real } from '../lib/stats.js';
 import { longDate, today, weekStart, dayMonth, addDays } from '../lib/dates.js';
 import { money } from '../lib/format.js';
@@ -25,27 +26,27 @@ export default function Dashboard() {
   const thin = s.count < 10;
 
   return (
-    <div className="page">
-      <div className="row between">
-        <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Dashboard</h1><div className="muted">{longDate(today())}</div></div>
+    <Board id="dashboard" className="page">
+      <div className="row between page-head" data-fixed>
+        <div><h1 className="page-title">Dashboard</h1><div className="muted">{longDate(today())}</div></div>
         <div className="row"><button className="btn sm" onClick={() => openModal('quick')}><Plus size={14} /> Quick log</button><button className="btn sm primary" onClick={() => openModal('log')}><Plus size={14} /> Log trade</button></div>
       </div>
 
-      <PremarketCard />
+      <PremarketCard data-blk="premarket" />
 
       {s.count === 0 && (
-        <Reveal className="banner" style={{ marginTop: 22 }}>
+        <Reveal data-blk="first" className="banner" style={{ marginTop: 22 }}>
           <div className="grow"><b style={{ fontSize: 18 }}>Log your first trade</b><div className="muted">Quick Log takes 5 seconds: symbol, direction, P&amp;L, grade. Press Q anywhere.</div></div>
           <button className="btn primary" onClick={() => openModal('quick')}>Quick log</button>
           <button className="btn" onClick={() => nav('/propfirm')}>Add a prop account</button>
         </Reveal>
       )}
 
-      <div style={{ marginTop: 22 }}><RangeCheck /></div>
+      <div data-blk="range"><RangeCheck /></div>
 
-      <div className="hero glass" style={{ textAlign: 'center', margin: '40px 0 50px' }}>
+      <div data-blk="hero" className="hero card" style={{ textAlign: 'center' }}>
         <div className="eyebrow">Total P&amp;L</div>
-        <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} style={{ fontSize: 'clamp(60px,9vw,120px)', fontWeight: 800, letterSpacing: '-.05em', textShadow: '0 0 60px var(--glow)' }}>
+        <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} className="hero-num">
           {hidePnl ? '$•••' : <CountUp value={s.total} format={(n) => money(n, { cents: false })} />}
         </motion.div>
         <div className="row" style={{ justifyContent: 'center', gap: 18, fontSize: 16 }}>
@@ -54,22 +55,22 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="row between" style={{ margin: '0 0 14px' }}>
+      <div data-blk="perf-head" className="row between sec-row">
         <span className="eyebrow">Performance</span>
         <div className="row"><button className="btn sm ghost" onClick={() => nav('/analytics')}>Full analytics →</button><button className="btn sm" onClick={toggleHide}>{hidePnl ? <EyeOff size={14} /> : <Eye size={14} />} {hidePnl ? 'Show' : 'Hide'} P&amp;L</button></div>
       </div>
-      <div className="grid rg-1 rg-1-tab" style={{ gridTemplateColumns: '1fr 1.3fr 1fr' }}>
-        <Reveal className="card stat"><div className="label">Avg Win RR</div><div className="val">{s.avgWinRR != null ? `${s.avgWinRR.toFixed(2)}R` : '—'}</div><div className="foot">Profit factor {Number.isFinite(s.profitFactor) ? s.profitFactor.toFixed(2) : '∞'}</div></Reveal>
-        <Reveal delay={0.05} className="card row" style={{ gap: 24 }}>
+      <>
+        <Reveal data-blk="rr" data-span={4} className="card stat"><div className="label">Avg Win RR</div><div className="val">{s.avgWinRR != null ? `${s.avgWinRR.toFixed(2)}R` : '—'}</div><div className="foot">Profit factor {Number.isFinite(s.profitFactor) ? s.profitFactor.toFixed(2) : '∞'}</div></Reveal>
+        <Reveal data-blk="winrate" data-span={4} delay={0.05} className="card row" style={{ gap: 24 }}>
           <Ring value={s.winRate} />
           <div className="stat grow"><div className="label">Win Rate</div><div className="val" style={{ marginTop: 6, fontSize: 28 }}>{s.wins}W / <span className="dim">{s.losses}L</span></div><div className="foot">{s.count} real trades{s.be ? ` · ${s.be} BE` : ''}</div></div>
           {thin && <span className="muted" style={{ fontSize: 13, textAlign: 'right' }}>Not enough<br />history yet</span>}
         </Reveal>
-        <Reveal delay={0.1} className="card stat"><div className="label">Avg Win / Loss</div><div className="val"><Money value={s.avgWin} cents={false} className="" /></div><div className="foot">Avg loss <Money value={-s.avgLoss} cents={false} /></div></Reveal>
-      </div>
+        <Reveal data-blk="avgwl" data-span={4} delay={0.1} className="card stat"><div className="label">Avg Win / Loss</div><div className="val"><Money value={s.avgWin} cents={false} className="" /></div><div className="foot">Avg loss <Money value={-s.avgLoss} cents={false} /></div></Reveal>
+      </>
 
-      <div className="grid rg-1 rg-1-tab" style={{ gridTemplateColumns: '1.6fr 1fr', marginTop: 14 }}>
-        <Reveal className="card">
+      <>
+        <Reveal data-blk="cum" data-span={7} className="card">
           <div className="row between"><span className="eyebrow">Cumulative P&amp;L <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>All time</span></span><b><Money value={s.total} cents={false} /></b></div>
           <div style={{ height: 280, marginTop: 12 }}>
             {cum.length ? (
@@ -86,25 +87,25 @@ export default function Dashboard() {
             ) : <div className="empty">No trades yet</div>}
           </div>
         </Reveal>
-        <Reveal delay={0.05} className="card">
+        <Reveal data-blk="week" data-span={5} delay={0.05} className="card">
           <div className="row between"><span className="eyebrow">This week</span><span className="dim">{dayMonth(ws)} to today</span></div>
           <div style={{ fontSize: 44, fontWeight: 700, margin: '16px 0', letterSpacing: '-.03em' }}><Money value={week.total} cents={false} animated /></div>
           {[['Trades', week.count], ['Win rate', `${week.winRate.toFixed(0)}%`], ['Best trade', <Money key="b" value={week.best} cents={false} />], ['Worst trade', <Money key="w" value={week.worst} cents={false} />]].map(([k, v]) => (
             <div key={k} className="row between" style={{ padding: '9px 0', borderBottom: '1px solid var(--line)' }}><span className="muted">{k}</span><b>{v}</b></div>
           ))}
         </Reveal>
-      </div>
+      </>
 
-      {s.count > 0 && <ExecutionStats trades={trades} be={breakEven} />}
+      {s.count > 0 && <div data-blk="exec"><ExecutionStats trades={trades} be={breakEven} /></div>}
 
-      <Goals user={user} updateUser={updateUser} notify={notify} />
+      <Goals data-blk="goals" user={user} updateUser={updateUser} notify={notify} />
 
-      <Reveal className="card" style={{ marginTop: 14 }}>
+      <Reveal data-blk="calendar" className="card">
         <h3>P&amp;L calendar</h3>
         <div className="sub" style={{ marginBottom: 14 }}>Click a day to see its trades</div>
         <Calendar trades={trades} onDay={(d) => nav(`/journal?date=${d}`)} />
       </Reveal>
-    </div>
+    </Board>
   );
 }
 

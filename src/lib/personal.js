@@ -84,6 +84,67 @@ export const fmtInr = (n, signed = false) => (n == null || !Number.isFinite(n) ?
 // ---------------------------------------------------------------- Money
 export const EXPENSE_CATS = ['Food', 'Groceries', 'Petrol', 'Card bill', 'Rent', 'Bills', 'Shopping', 'Health', 'Travel', 'Family', 'Entertainment', 'Education', 'Other'];
 export const INCOME_CATS = ['Salary', 'Trading payout', 'Freelance', 'Business', 'Interest', 'Gift', 'Other'];
+export const PAY_METHODS = ['UPI', 'Credit card – Card', 'Credit card – UPI', 'Debit card', 'Cash', 'Bank', 'Wallet'];
+export const isCredit = (m) => /^credit card/i.test(m || '');
+
+// ---------------------------------------------------------------- Investments and loans
+const monthsDiff = (from, to) => {
+  const [y1, m1, d1] = from.split('-').map(Number); const [y2, m2, d2] = to.split('-').map(Number);
+  return Math.max(0, (y2 - y1) * 12 + (m2 - m1) + (d2 - d1) / 30.44);
+};
+const PER_YEAR = { yearly: 1, quarterly: 4, monthly: 12 };
+/** Amount after `months` at `rate` % a year, simple or compounded */
+export function grow(principal, rate, months, compounding = 'simple') {
+  const t = months / 12, r = rate / 100;
+  if (compounding === 'simple' || !PER_YEAR[compounding]) return principal * (1 + r * t);
+  const n = PER_YEAR[compounding];
+  return principal * (1 + r / n) ** (n * t);
+}
+/** Monthly instalment for a loan of `principal` at `rate` % a year over `months` */
+export function emiFor(principal, rate, months) {
+  const i = rate / 1200;
+  if (!months) return null;
+  if (!i) return principal / months;
+  return (principal * i * (1 + i) ** months) / ((1 + i) ** months - 1);
+}
+/**
+ * Where an investment or loan stands today.
+ * Investment: value now, gain so far, and value at maturity if it has a term.
+ * Loan with a term: EMI, interest paid so far, interest over the whole loan, amount still owed.
+ * Loan without a term: interest that has built up on it so far.
+ */
+export function holdingNow(h, asOf = ymdOf()) {
+  const elapsed = Math.min(monthsDiff(h.start, asOf), h.months || Infinity);
+  const comp = h.compounding || 'simple';
+  if (h.kind === 'investment') {
+    const value = grow(h.principal, h.rate, elapsed, comp);
+    const maturity = h.months ? grow(h.principal, h.rate, h.months, comp) : null;
+    return { elapsed, value: r2(value), gain: r2(value - h.principal), maturity: maturity && r2(maturity), maturityGain: maturity && r2(maturity - h.principal), done: h.months ? elapsed >= h.months : false };
+  }
+  if (h.months) {
+    const emi = emiFor(h.principal, h.rate, h.months);
+    const k = Math.min(Math.floor(elapsed), h.months), i = h.rate / 1200;
+    const owed = i ? h.principal * (1 + i) ** k - emi * (((1 + i) ** k - 1) / i) : h.principal - emi * k;
+    const paid = emi * k;
+    const interestPaid = paid - (h.principal - owed);
+    return { elapsed, emi: r2(emi), paidMonths: k, owed: r2(Math.max(0, owed)), interestPaid: r2(interestPaid), totalInterest: r2(emi * h.months - h.principal), totalPay: r2(emi * h.months), done: k >= h.months };
+  }
+  const owed = grow(h.principal, h.rate, elapsed, comp);
+  return { elapsed, owed: r2(owed), interestPaid: 0, accrued: r2(owed - h.principal), totalInterest: null, done: false };
+}
+/** Totals across all open holdings */
+export function holdingsSummary(list, asOf = ymdOf()) {
+  const open = list.filter((h) => !h.closed);
+  const inv = open.filter((h) => h.kind === 'investment').map((h) => ({ h, n: holdingNow(h, asOf) }));
+  const loans = open.filter((h) => h.kind === 'loan').map((h) => ({ h, n: holdingNow(h, asOf) }));
+  const invested = sum(inv, (x) => x.h.principal), value = sum(inv, (x) => x.n.value);
+  const owed = sum(loans, (x) => x.n.owed), interestPaid = sum(loans, (x) => x.n.interestPaid + (x.n.accrued || 0));
+  const monthlyEmi = sum(loans, (x) => (x.n.done ? 0 : x.n.emi));
+  // Interest earned each year vs paid each year, at today's balances
+  const earnYear = sum(inv, (x) => x.n.value * (x.h.rate / 100));
+  const payYear = sum(loans, (x) => x.n.owed * (x.h.rate / 100));
+  return { invested: r2(invested), value: r2(value), gain: r2(value - invested), owed: r2(owed), interestPaid: r2(interestPaid), monthlyEmi: r2(monthlyEmi), earnYear: r2(earnYear), payYear: r2(payYear), netWorth: r2(value - owed), inv, loans };
+}
 
 /** EMI status for a given month */
 export function emiStatus(e, ym = ymOf()) {

@@ -4,6 +4,7 @@ import { Target, Plus } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Money, Reveal, Empty } from '../components/ui.jsx';
 import { groupBy, summary } from '../lib/stats.js';
+import Board from '../components/Board.jsx';
 
 export default function Strategy() {
   const { trades, settings, breakEven, openModal } = useApp();
@@ -11,8 +12,8 @@ export default function Strategy() {
   const stats = useMemo(() => groupBy(trades, (t) => t.playbook, breakEven), [trades, breakEven]);
   const untagged = trades.filter((t) => !t.noTrade && !t.playbook).length;
   return (
-    <div className="page">
-      <div className="row between">
+    <Board id="strategy" className="page">
+      <div data-fixed className="page-head row between">
         <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Strategy</h1><div className="muted">Your playbooks and how each one performs</div></div>
         <button className="btn" onClick={() => openModal('settings', { tab: 'Tags' })}><Plus size={15} /> Edit playbooks</button>
       </div>
@@ -36,6 +37,6 @@ export default function Strategy() {
         </div>
       )}
       {untagged > 0 && <p className="muted" style={{ marginTop: 20 }}>{untagged} trades have no playbook. Open them in the Journal to tag them.</p>}
-    </div>
+    </Board>
   );
 }

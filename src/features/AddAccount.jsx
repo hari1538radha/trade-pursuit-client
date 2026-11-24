@@ -3,11 +3,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Search, Check, ArrowRight, X, RotateCcw, Minus, Plus } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Dialog, Seg, Field, ease } from '../components/ui.jsx';
-import { FIRMS, FIRM_NOTE, phaseNames, rulesFor, findFirm } from '../lib/firms.js';
+import { FIRM_NOTE, phaseNames, rulesFor, findFirm, mergeFirms } from '../lib/firms.js';
+import { today } from '../lib/dates.js';
 import { cls, usd, kfmt } from '../lib/format.js';
 
 /** Step 1: choose firm. Step 2: choose plan + log eval/funded. */
 export default function AddAccount({ open, onClose, firmId }) {
+  const { settings, openModal } = useApp();
+  const FIRMS = mergeFirms(settings.customFirms);
   const [firm, setFirm] = useState(null);
   const [sel, setSel] = useState(null);
   const [type, setType] = useState('CFD');
@@ -15,9 +18,9 @@ export default function AddAccount({ open, onClose, firmId }) {
   const [custom, setCustom] = useState(false);
   useEffect(() => {
     if (!open) return;
-    const f = firmId && findFirm(firmId);
+    const f = firmId && findFirm(firmId, FIRMS);
     setFirm(f || null); setSel(f || null); setType(f?.type || 'CFD'); setQ(''); setCustom(false);
-  }, [open, firmId]);
+  }, [open, firmId]); // eslint-disable-line
   const list = FIRMS.filter((f) => f.type === type && f.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
@@ -37,7 +40,7 @@ export default function AddAccount({ open, onClose, firmId }) {
             </div>
             <div className="grid rg-1" style={{ gridTemplateColumns: '220px 1fr', gap: 18 }}>
               <div className="card" style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-                {['Firm', 'Plan', 'Log', 'Done'].map((s, i) => <div key={s} className="row" style={{ gap: 10, padding: '10px 0', color: i === 0 ? 'var(--text)' : 'var(--muted)' }}><span style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${i === 0 ? '#fff' : '#444'}` }} />{s}</div>)}
+                {['Firm', 'Plan', 'Log', 'Done'].map((s, i) => <div key={s} className="row" style={{ gap: 10, padding: '10px 0', color: i === 0 ? 'var(--text)' : 'var(--muted)' }}><span style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${i === 0 ? 'var(--blue)' : 'var(--line2)'}`, background: i === 0 ? 'var(--blue)' : 'none' }} />{s}</div>)}
                 <p className="dim" style={{ marginTop: 'auto', fontSize: 12.5, lineHeight: 1.5 }}>{FIRM_NOTE}</p>
               </div>
               <div className="card" style={{ background: 'var(--panel2)' }}>
@@ -45,26 +48,29 @@ export default function AddAccount({ open, onClose, firmId }) {
                   <b>Choose a firm</b>
                   <Seg options={['CFD', 'Futures']} value={type} onChange={(t) => { setType(t); setSel(null); }} />
                 </div>
-                <div className="row" style={{ background: 'var(--panel3)', borderRadius: 12, padding: '0 14px', marginBottom: 16 }}>
+                <label className="search" style={{ marginBottom: 16 }}>
                   <Search size={16} className="muted" />
-                  <input className="input" style={{ background: 'none' }} placeholder="Search firms" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
-                </div>
+                  <input placeholder="Search firms" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+                </label>
                 <motion.div layout className="firm-grid" style={{ maxHeight: 440, overflowY: 'auto', padding: 4 }}>
                   {list.map((f) => (
-                    <motion.button layout key={f.id} className={cls('firm-card', sel?.id === f.id && 'sel')} style={{ background: `linear-gradient(160deg, ${f.color}, #121216)`, minHeight: 150 }} onClick={() => setSel(f)} onDoubleClick={() => setFirm(f)} whileTap={{ scale: 0.97 }}>
-                      {sel?.id === f.id && <span style={{ position: 'absolute', top: 12, right: 12, width: 26, height: 26, borderRadius: '50%', background: '#fff', color: '#000', display: 'grid', placeItems: 'center' }}><Check size={15} /></span>}
+                    <motion.button layout key={f.id} className={cls('firm-card', sel?.id === f.id && 'sel')} style={{ '--firm': f.color, minHeight: 150 }} onClick={() => setSel(f)} onDoubleClick={() => setFirm(f)} whileTap={{ scale: 0.97 }}>
+                      {sel?.id === f.id && <span style={{ position: 'absolute', top: 12, right: 12, width: 26, height: 26, borderRadius: '50%', background: 'var(--blue)', color: '#fff', display: 'grid', placeItems: 'center' }}><Check size={15} /></span>}
                       <div className="firm-logo">{f.short}</div>
                       <b style={{ fontSize: 19 }}>{f.name}</b>
                       <span className="muted" style={{ fontSize: 13 }}>{f.programs.reduce((n, p) => n + p.variants.reduce((m, v) => m + v.sizes.length, 0), 0)} plans · ${kfmt(Math.min(...f.programs.flatMap((p) => p.variants.flatMap((v) => v.sizes.map((s) => s.size))))) } to ${kfmt(Math.max(...f.programs.flatMap((p) => p.variants.flatMap((v) => v.sizes.map((s) => s.size)))))}</span>
                     </motion.button>
                   ))}
+                  <button className="firm-card blank" style={{ minHeight: 150 }} onClick={() => openModal('firm')}>
+                    <div className="firm-logo"><Plus size={20} /></div><b style={{ fontSize: 19 }}>Add a prop firm</b><span className="muted" style={{ fontSize: 13 }}>Save its programs, rules and prices to your list</span>
+                  </button>
                   <button className="firm-card blank" style={{ minHeight: 150 }} onClick={() => setCustom(true)}>
                     <div className="firm-logo"><Plus size={20} /></div><b style={{ fontSize: 19 }}>Other firm / personal</b><span className="muted" style={{ fontSize: 13 }}>Enter your own rules</span>
                   </button>
                 </motion.div>
                 <AnimatePresence>
                   {sel && (
-                    <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} className="row between" style={{ marginTop: 14, padding: 12, borderRadius: 18, background: `linear-gradient(90deg, ${sel.color}, var(--panel2))` }}>
+                    <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} className="row between" style={{ marginTop: 14, padding: 12, borderRadius: 18, background: `linear-gradient(90deg, color-mix(in srgb, ${sel.color} 22%, var(--panel)), var(--panel))`, border: '1px solid var(--line)' }}>
                       <button className="btn" onClick={() => setSel(null)}>Pick another</button>
                       <div style={{ textAlign: 'center' }}><b style={{ fontSize: 20 }}>{sel.name}</b></div>
                       <button className="btn primary" onClick={() => setFirm(sel)}>Continue <ArrowRight size={16} /></button>
@@ -108,7 +114,7 @@ function PlanPicker({ firm, onBack, onClose }) {
       </div>
       <div className="row" style={{ justifyContent: 'center', gap: 10, marginTop: 18 }}>
         {firm.programs.map((p) => (
-          <motion.button whileTap={{ scale: 0.96 }} key={p.id} onClick={() => setProg(p.id)} style={{ padding: '10px 22px', borderRadius: 18, border: '1px solid', borderColor: p.id === progId ? 'var(--blue)' : 'var(--line2)', background: p.id === progId ? 'linear-gradient(180deg,#1e2a78,#141a44)' : '#151518', textAlign: 'center' }}>
+          <motion.button whileTap={{ scale: 0.96 }} key={p.id} onClick={() => setProg(p.id)} className={cls('prog-btn', p.id === progId && 'on')}>
             <div style={{ fontSize: 18, fontWeight: 600 }}>{p.name}</div><div className="muted" style={{ fontSize: 13 }}>{p.tagline}</div>
           </motion.button>
         ))}
@@ -124,13 +130,13 @@ function PlanPicker({ firm, onBack, onClose }) {
           const val = (d, p, suffix = '') => (d == null ? 'None' : unit === '$' ? usd(d) : `${p}%`) + suffix;
           return (
             <motion.div key={s.size} className="plan-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, ease }} whileHover={{ y: -4 }}>
-              <div className="row between"><span className="eyebrow" style={{ color: '#c4c8e8' }}>Account size</span><span className="tag" style={{ background: '#ffffff14' }}>{phase}</span></div>
+              <div className="row between"><span className="eyebrow">Account size</span><span className="tag blue">{phase}</span></div>
               <div className="big" style={{ marginTop: 8 }}>{kfmt(s.size)}</div>
-              <div style={{ color: '#9ea3cc', marginTop: 6 }}>{firm.name} {prog.name}</div>
+              <div className="muted" style={{ marginTop: 6 }}>{firm.name} {prog.name}</div>
               {fail != null && (
                 <>
-                  <div style={{ marginTop: 22, height: 7, borderRadius: 7, background: '#3a3a44', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', left: `${(r.maxLoss / ((r.profitTarget || 0) + r.maxLoss)) * 100}%`, right: 0, top: 0, bottom: 0, background: 'linear-gradient(90deg,#2337c6,#3b55ff)' }} />
+                  <div className="track" style={{ marginTop: 22, height: 7 }}>
+                    <div className="fill" style={{ position: 'absolute', left: `${(r.maxLoss / ((r.profitTarget || 0) + r.maxLoss)) * 100}%`, right: 0, top: 0, bottom: 0, width: 'auto' }} />
                   </div>
                   <div className="prog-legend">
                     <b>{unit === '$' ? usd(fail) : `-${r.pct.maxLoss}%`}<small>Fail below</small></b>
@@ -155,7 +161,7 @@ function PlanPicker({ firm, onBack, onClose }) {
               </div>
               <div className="row" style={{ marginTop: 14, gap: 8 }}>
                 {phases.length > 1 && <button className="btn sm" style={{ flexDirection: 'column', gap: 2, flex: 'none', padding: '6px 9px' }} onClick={() => setPhaseBySize((x) => ({ ...x, [s.size]: phase === 'Funded' ? phases[0] : 'Funded' }))}><RotateCcw size={14} />{phase === 'Funded' ? 'Eval details' : 'Funded details'}</button>}
-                <div className="row grow" style={{ background: 'var(--panel2)', borderRadius: 12, padding: 4, minWidth: 0, gap: 2 }}>
+                <div className="row grow" style={{ background: 'var(--panel2)', border: '1px solid var(--line)', borderRadius: 12, padding: 4, minWidth: 0, gap: 2 }}>
                   <button className="btn ghost grow" style={{ color: 'var(--text)', padding: '10px 6px' }} onClick={() => setLogging({ size: s, phase: phase === 'Funded' ? phases[0] : phase, kind: 'eval' })}>Log eval</button>
                   <span className="dim">or</span>
                   <button className="btn ghost grow" style={{ color: 'var(--text)', padding: '10px 6px' }} onClick={() => setLogging({ size: s, phase: 'Funded', kind: 'funded' })}>Log funded</button>
@@ -183,14 +189,15 @@ function LogEvalPopover({ firm, prog, variant, size, phase, kind, onClose, onSav
   const [paid, setPaid] = useState(kind === 'funded' ? '' : size.price ?? '');
   const [bal, setBal] = useState('');
   const [name, setName] = useState(`${firm.name} ${kfmt(size.size)}${kind === 'funded' ? ' Funded' : ''}`);
+  const [bought, setBought] = useState(today());
   const r = rulesFor(variant, size, phase);
   const save = () => onSave({
-    count, name, firmId: firm.id, firmName: firm.name, firmType: firm.type, program: prog.name, variant: variant.name, size: size.size,
-    phase, kind, paid: parseFloat(paid) || 0, startBalance: parseFloat(bal) || size.size,
-    rules: { profitTarget: r.profitTarget, maxLoss: r.maxLoss, maxLossType: r.maxLossType, dailyLoss: r.dailyLoss, minDays: r.minDays, consistency: r.consistency },
+    count, name, firmId: firm.id, firmName: firm.name, firmType: firm.type, program: prog.name, variant: variant.name, programId: prog.id, variantId: variant.id, size: size.size,
+    phase, kind, paid: parseFloat(paid) || 0, startBalance: parseFloat(bal) || size.size, purchasedAt: bought,
+    rules: { profitTarget: r.profitTarget, maxLoss: r.maxLoss, maxLossType: r.maxLossType, dailyLoss: r.dailyLoss, minDays: r.minDays, minTrades: (variant.unit === 'pct' ? (phase === 'Funded' ? variant.funded : variant.phases.find((x) => x.name === phase))?.minTrades : size.minTrades) || 0, consistency: r.consistency },
   });
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', inset: -26, background: '#000a', borderRadius: 26, display: 'grid', placeItems: 'center', zIndex: 5 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', inset: -26, background: 'var(--overlay)', borderRadius: 26, display: 'grid', placeItems: 'center', zIndex: 5 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ y: 40, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }} className="dialog" style={{ background: 'linear-gradient(180deg,var(--blue-soft),transparent 45%), var(--panel)', borderColor: 'var(--blue)', width: 460 }}>
         <div className="row between"><span className="eyebrow">{kind === 'funded' ? 'Log funded' : 'Log evaluations'}</span><button className="close-x" onClick={onClose}><X size={16} /></button></div>
         <h3 style={{ fontSize: 26, margin: '6px 0 18px', letterSpacing: '-.02em' }}>{firm.name} {prog.name} {kfmt(size.size)}</h3>
@@ -198,7 +205,10 @@ function LogEvalPopover({ firm, prog, variant, size, phase, kind, onClose, onSav
           <Field label="How many">
             <div className="stepper"><button onClick={() => setCount((c) => Math.max(1, c - 1))}><Minus size={18} style={{ margin: 'auto' }} /></button><b className="mono">{count}</b><button onClick={() => setCount((c) => Math.min(50, c + 1))}><Plus size={18} style={{ margin: 'auto' }} /></button></div>
           </Field>
-          <Field label="What you paid"><input className="input" inputMode="decimal" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder="$ 0" /></Field>
+          <div className="fgrid">
+            <Field label="What you paid"><input className="input" inputMode="decimal" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder="$ 0" /></Field>
+            <Field label="Bought on"><input className="input" type="date" value={bought} onChange={(e) => setBought(e.target.value)} /></Field>
+          </div>
           <Field label="Balance today (optional)" hint="Already trading it? Type the balance your firm shows today."><input className="input" inputMode="decimal" value={bal} onChange={(e) => setBal(e.target.value)} placeholder={`$ ${size.size}`} /></Field>
           <Field label="Name"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <div className="muted" style={{ fontSize: 13 }}>It will be named: {count > 1 ? `${name} 1 … ${name} ${count}` : name}</div>
@@ -211,12 +221,12 @@ function LogEvalPopover({ firm, prog, variant, size, phase, kind, onClose, onSav
 
 function CustomAccount({ onBack, onDone }) {
   const { addAccounts, notify } = useApp();
-  const [f, setF] = useState({ name: '', firmName: '', size: '', kind: 'eval', phase: 'Phase 1', profitTarget: '', maxLoss: '', maxLossType: 'Static', dailyLoss: '', minDays: '', paid: '' });
+  const [f, setF] = useState({ name: '', firmName: '', size: '', kind: 'eval', phase: 'Phase 1', profitTarget: '', maxLoss: '', maxLossType: 'Static', dailyLoss: '', minDays: '', minTrades: '', paid: '', purchasedAt: today(), program: '' });
   const set = (k) => (e) => setF({ ...f, [k]: e?.target ? e.target.value : e });
   const n = (v) => (v === '' ? null : parseFloat(v));
   const save = async () => {
     if (!f.name || !n(f.size)) return notify('Name and size are required');
-    await addAccounts({ name: f.name, firmName: f.firmName || 'Personal', firmId: 'custom', size: n(f.size), kind: f.kind, phase: f.kind === 'funded' ? 'Funded' : f.phase, paid: n(f.paid) || 0, rules: { profitTarget: n(f.profitTarget), maxLoss: n(f.maxLoss), maxLossType: f.maxLossType, dailyLoss: n(f.dailyLoss), minDays: n(f.minDays) || 0 } });
+    await addAccounts({ name: f.name, firmName: f.firmName || 'Personal', firmId: 'custom', program: f.program, size: n(f.size), kind: f.kind, phase: f.kind === 'funded' ? 'Funded' : f.phase, paid: n(f.paid) || 0, purchasedAt: f.purchasedAt || undefined, rules: { profitTarget: n(f.profitTarget), maxLoss: n(f.maxLoss), maxLossType: f.maxLossType, dailyLoss: n(f.dailyLoss), minDays: n(f.minDays) || 0, minTrades: n(f.minTrades) || 0 } });
     notify('Account added'); onDone();
   };
   return (
@@ -232,7 +242,11 @@ function CustomAccount({ onBack, onDone }) {
         <Field label="Max loss type"><Seg options={['Static', 'EOD trailing', 'Intraday trailing']} value={f.maxLossType} onChange={set('maxLossType')} /></Field>
         <Field label="Daily loss ($)"><input className="input" value={f.dailyLoss} onChange={set('dailyLoss')} /></Field>
         <Field label="Min days"><input className="input" value={f.minDays} onChange={set('minDays')} /></Field>
+        <Field label="Min trades"><input className="input" value={f.minTrades} onChange={set('minTrades')} /></Field>
+        <Field label="Phase"><Seg options={['Phase 1', 'Phase 2']} value={f.phase} onChange={set('phase')} /></Field>
+        <Field label="Program (e.g. 2 Step)" hint="Say 2 Step to get a Phase 2 when Phase 1 passes"><input className="input" value={f.program} onChange={set('program')} /></Field>
         <Field label="What you paid"><input className="input" value={f.paid} onChange={set('paid')} /></Field>
+        <Field label="Bought on"><input className="input" type="date" value={f.purchasedAt} onChange={set('purchasedAt')} /></Field>
       </div>
       <button className="btn primary" style={{ width: '100%', marginTop: 20, height: 50 }} onClick={save}>Add account</button>
     </div>

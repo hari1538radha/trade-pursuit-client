@@ -6,7 +6,7 @@ import { weekWorst } from '../lib/coach.js';
 const money = (n) => `${n < 0 ? '-' : '+'}$${Math.abs(Math.round(n)).toLocaleString('en-US')}`;
 
 /**
- * Always-on strip under the top bar: the worst things you did last week and what to do instead.
+ * Always-on strip at the bottom of the screen: the worst things you did last week and what to do instead.
  * Click it for the full card (the coach also shows that card once a day).
  */
 export default function WeekTicker() {

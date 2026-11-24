@@ -4,6 +4,7 @@ import { useApp } from '../store/AppContext.jsx';
 import { Seg, Reveal } from '../components/ui.jsx';
 import { PO3, INSTRUMENTS, autoPo3, goldbach } from '../lib/goldbach.js';
 import { cls } from '../lib/format.js';
+import Board from '../components/Board.jsx';
 
 const ZONE_COLOR = { premium: '#f0616d', discount: '#2fbf8f', eq: '#a78bfa', edge: 'var(--text)' };
 const KEY_COLOR = { rb: '#f59e0b', ob: '#3b82f6', fvg: '#a78bfa', lv: '#94a3b8', br: '#ec4899', mb: '#14b8a6', eq: '#a78bfa', high: 'var(--text)', low: 'var(--text)' };
@@ -108,8 +109,8 @@ export default function Goldbach() {
   const fmt = (v) => (v == null ? '—' : v.toFixed(inst.digits));
 
   return (
-    <div className="page wide-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="goldbach" className="page wide-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><Gem size={22} /> Goldbach levels</h1>
           <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>Power-of-3 dealing ranges and Goldbach levels for gold and silver. {data && <span className="tag">{data.source}</span>}</div>
@@ -220,6 +221,6 @@ export default function Goldbach() {
           </div>
         </>
       )}
-    </div>
+    </Board>
   );
 }

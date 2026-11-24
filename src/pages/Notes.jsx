@@ -5,6 +5,7 @@ import { useApp } from '../store/AppContext.jsx';
 import { Empty, Seg } from '../components/ui.jsx';
 import { cls } from '../lib/format.js';
 import { shortDate } from '../lib/dates.js';
+import Board from '../components/Board.jsx';
 
 const KINDS = { lesson: 'Lesson', rule: 'Rule', mistake: 'Mistake', idea: 'Idea', review: 'Review' };
 const KIND_COLOR = { lesson: '#7c9cff', rule: 'var(--green)', mistake: 'var(--red)', idea: '#e5b53a', review: '#c4b5fd' };
@@ -55,8 +56,8 @@ export default function Notes() {
   const open = (n) => setEdit(n ? { ...n, tagsText: (n.tags || []).join(', ') } : { title: '', body: TEMPLATES.lesson, kind: 'lesson', tagsText: '', pinned: false });
 
   return (
-    <div className="page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="notes" className="page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><NotebookPen size={22} /> Learning Notes</h1><div className="muted">Lessons, rules and mistakes in your own words. {notes.length} notes.</div></div>
         <button className="btn primary" onClick={() => open(null)}><Plus size={16} /> New note</button>
       </div>
@@ -95,7 +96,7 @@ export default function Notes() {
         </motion.div>
       )}
 
-      <AnimatePresence>
+      <AnimatePresence data-free>
         {edit && (
           <motion.div className="overlay center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && setEdit(null)}>
             <motion.div className="dialog" style={{ width: 'min(760px,96vw)' }} initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, opacity: 0 }}>
@@ -124,6 +125,6 @@ export default function Notes() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </Board>
   );
 }

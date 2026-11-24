@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence, motion, animate, useInView } from 'framer-motion';
 import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { cls, money } from '../lib/format.js';
 import { useApp } from '../store/AppContext.jsx';
 
@@ -9,9 +10,9 @@ export const ease = [0.22, 1, 0.36, 1];
 export function Logo({ size = 30 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-label="Trade Pursuit">
-      <rect width="32" height="32" rx="10" fill="var(--inv-bg)" />
-      <path d="M8 21.5l5.2-6.2 4.2 3.2L24 10" stroke="var(--inv-text)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="24" cy="10" r="2.2" fill="var(--inv-text)" />
+      <defs><linearGradient id="tp-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4f46e5" /><stop offset="1" stopColor="#7c3aed" /></linearGradient></defs><rect width="32" height="32" rx="10" fill="url(#tp-logo)" />
+      <path d="M8 21.5l5.2-6.2 4.2 3.2L24 10" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="24" cy="10" r="2.2" fill="#fff" />
     </svg>
   );
 }
@@ -104,7 +105,8 @@ export function Dialog({ open, onClose, children, wide, title }) {
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [open, onClose]);
-  return (
+  // Rendered at the top of the page so no page layer (or the board) can cover it
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div className="overlay center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -119,7 +121,8 @@ export function Dialog({ open, onClose, children, wide, title }) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

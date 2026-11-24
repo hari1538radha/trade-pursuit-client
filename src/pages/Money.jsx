@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Wallet, Plus, ChevronLeft, ChevronRight, Trash2, Check, Landmark, Search } from 'lucide-react';
+import { Wallet, Plus, ChevronLeft, ChevronRight, Trash2, Check, Landmark, Search, Download, CreditCard } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, Cell, PieChart, Pie } from 'recharts';
 import { useApp } from '../store/AppContext.jsx';
 import { Seg, Reveal, Dialog, Field } from '../components/ui.jsx';
-import { moneyMonth, emiStatus, fmtInr, ymOf, ymdOf, addMonths, monthLabel, EXPENSE_CATS, INCOME_CATS } from '../lib/personal.js';
+import { moneyMonth, emiStatus, fmtInr, ymOf, ymdOf, addMonths, monthLabel, EXPENSE_CATS, INCOME_CATS, PAY_METHODS, isCredit } from '../lib/personal.js';
+import { downloadEntries } from '../lib/moneyExport.js';
+import Holdings from '../features/Holdings.jsx';
 import { cls } from '../lib/format.js';
+import Board from '../components/Board.jsx';
 
 const AX = { tickLine: false, axisLine: false, tick: { fontSize: 12, fill: 'var(--text2)' } };
 const TT = { contentStyle: { background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: 10, fontSize: 13 }, formatter: (v, n) => [fmtInr(v), n] };
@@ -25,6 +28,7 @@ export default function Money() {
   const [emiEdit, setEmiEdit] = useState(null);
   const [q, setQ] = useState('');
   const [kind, setKind] = useState('all');
+  const [dl, setDl] = useState(false);
   const load = () => Promise.all([api.personal.list('money/entries'), api.personal.list('money/emis'), api.personal.list('props/purchases')])
     .then(([a, b, c]) => { setEntries(a.items); setEmis(b.items); setBuys(c.items); }).catch((e) => notify(e.message));
   useEffect(() => { load(); }, []); // eslint-disable-line
@@ -56,10 +60,11 @@ export default function Money() {
   if (!m) return <div className="page"><p className="muted">Loading…</p></div>;
   const list = m.entries.filter((e) => (kind === 'all' || e.kind === kind) && (!q || `${e.category} ${e.note} ${e.method}`.toLowerCase().includes(q.toLowerCase()))).sort((a, b) => b.date.localeCompare(a.date));
   const overBudget = budget && m.outgo > budget;
+  const onCredit = m.entries.filter((e) => e.kind === 'expense' && isCredit(e.method)).reduce((s, e) => s + e.amount, 0);
 
   return (
-    <div className="page wide-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="money" className="page wide-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><Wallet size={22} /> Money</h1>
           <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>Expenses, income, EMIs and eval spend, month by month. Only you (admin) can see this.</div>
@@ -70,6 +75,17 @@ export default function Money() {
             <b style={{ minWidth: 92, textAlign: 'center' }}>{new Date(`${ym}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</b>
             <button className="icon-btn" onClick={() => setYm(addMonths(ym, 1))} aria-label="Next month" disabled={ym >= ymOf()}><ChevronRight size={16} /></button>
           </div>
+          <div className="dl-wrap">
+            <button className="btn sm" onClick={() => setDl((v) => !v)} aria-expanded={dl}><Download size={14} /> Download</button>
+            {dl && (
+              <div className="menu" onMouseLeave={() => setDl(false)}>
+                {[['month', 'csv', `${monthLabel(ym)} · CSV (Excel)`], ['month', 'pdf', `${monthLabel(ym)} · PDF`], ['all', 'csv', 'All months · CSV (Excel)'], ['all', 'pdf', 'All months · PDF']].map(([scope, fmt, label]) => (
+                  <button key={label} onClick={() => { setDl(false); downloadEntries({ entries, ym: scope === 'month' ? ym : null, kind, fmt }); }}>{label}</button>
+                ))}
+                <div className="dim small" style={{ padding: '6px 10px 2px' }}>Uses the {kind === 'all' ? 'All' : kind === 'expense' ? 'Expenses' : 'Income'} filter below.</div>
+              </div>
+            )}
+          </div>
           <button className="btn sm" onClick={() => setEdit({ kind: 'income', date: ymdOf(), amount: '', category: 'Salary', method: 'Bank', note: '' })}><Plus size={14} /> Income</button>
           <button className="btn sm primary" onClick={() => setEdit({ kind: 'expense', date: ymdOf(), amount: '', category: 'Food', method: 'UPI', note: '' })}><Plus size={14} /> Expense</button>
         </div>
@@ -78,7 +94,7 @@ export default function Money() {
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', marginTop: 16 }}>
         {[
           ['Income', fmtInr(m.income), `${m.entries.filter((e) => e.kind === 'income').length} entries`, 'var(--green)'],
-          ['Expenses', fmtInr(m.expenses), `${m.entries.filter((e) => e.kind === 'expense').length} entries`],
+          ['Expenses', fmtInr(m.expenses), `${m.entries.filter((e) => e.kind === 'expense').length} entries${onCredit ? ` · ${fmtInr(onCredit)} on credit cards` : ''}`],
           ['EMIs due', fmtInr(m.emiTotal), `${m.emiDue.length} active · ${m.emiDue.filter((e) => (e.paid || []).includes(ym)).length} paid`],
           ['Spent on evals', fmtInr(m.evalInr), `${m.evalCount} account${m.evalCount === 1 ? '' : 's'} · ₹${usdInr}/$`],
           ['Total out', fmtInr(m.outgo), budget ? `${Math.round((m.outgo / budget) * 100)}% of ${fmtInr(budget)} budget` : 'Set a budget below', overBudget ? 'var(--red)' : undefined],
@@ -88,8 +104,8 @@ export default function Money() {
         ))}
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,480px),1fr))' }}>
-        <Reveal className="card" style={{ marginTop: 16 }}>
+      <>
+        <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Where the money went</h3>
           <div className="sub" style={{ fontSize: 13, marginTop: 4 }}>{monthLabel(ym)} · expenses, EMIs and evals</div>
           {m.byCategory.length ? (
@@ -110,7 +126,7 @@ export default function Money() {
             </div>
           ) : <div className="empty" style={{ padding: 40 }}>Nothing spent this month yet.</div>}
         </Reveal>
-        <Reveal className="card" style={{ marginTop: 16 }}>
+        <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
           <h3 style={{ margin: 0, fontSize: 17 }}>Last 6 months</h3>
           <div className="sub" style={{ fontSize: 13, marginTop: 4 }}>Income vs what went out (stacked), and what was saved</div>
           <div style={{ height: 260, marginTop: 10 }}>
@@ -130,7 +146,7 @@ export default function Money() {
             </ResponsiveContainer>
           </div>
         </Reveal>
-      </div>
+      </>
 
       <Reveal className="card" style={{ marginTop: 16 }}>
         <div className="row between wrap" style={{ gap: 10 }}>
@@ -158,6 +174,8 @@ export default function Money() {
         {emis.length > 0 && <p className="muted" style={{ fontSize: 13.5, marginBottom: 0 }}>All EMIs: {fmtInr(emis.reduce((s, e) => s + (emiStatus(e, ym).active ? e.amount : 0), 0))} a month · {fmtInr(emis.reduce((s, e) => s + emiStatus(e, ym).remainingAmount, 0))} still to pay.</p>}
       </Reveal>
 
+      <Holdings />
+
       <Reveal className="card" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
         <div className="row between wrap" style={{ padding: '16px 18px 8px', gap: 10 }}>
           <Seg options={[{ value: 'all', label: 'All' }, { value: 'expense', label: 'Expenses' }, { value: 'income', label: 'Income' }]} value={kind} onChange={setKind} />
@@ -169,7 +187,7 @@ export default function Money() {
             <tbody>
               {list.map((e) => (
                 <tr key={e.id} className="click" onClick={() => setEdit(e)}>
-                  <td className="mono">{e.date}</td><td><b>{e.category}</b></td><td className="muted">{e.method || '—'}</td><td className="muted" style={{ whiteSpace: 'normal' }}>{e.note || ''}</td>
+                  <td className="mono">{e.date}</td><td><b>{e.category}</b></td><td className="muted">{isCredit(e.method) && <CreditCard size={13} style={{ verticalAlign: -2, marginRight: 4 }} />}{e.method || '—'}</td><td className="muted" style={{ whiteSpace: 'normal' }}>{e.note || ''}</td>
                   <td className={cls('r mono', e.kind === 'income' ? 'pos' : '')} style={{ fontWeight: 600 }}>{e.kind === 'income' ? '+' : '−'}{fmtInr(e.amount)}</td>
                 </tr>
               ))}
@@ -186,16 +204,23 @@ export default function Money() {
         <span className="dim" style={{ fontSize: 12.5 }}>Eval fees use the ₹ actually debited when you entered it on the Payouts page, otherwise this rate.</span>
       </Reveal>
 
-      {edit && <EntryDialog item={edit} onClose={() => setEdit(null)} onSave={save} onDelete={async (id) => { await api.personal.remove('money/entries', id); setEdit(null); load(); }} />}
-      {emiEdit && <EmiDialog item={emiEdit} onClose={() => setEmiEdit(null)} onSave={saveEmi} onDelete={async (id) => { await api.personal.remove('money/emis', id); setEmiEdit(null); load(); }} />}
-    </div>
+      {edit && <EntryDialog data-free item={edit} onClose={() => setEdit(null)} onSave={save} onDelete={async (id) => { await api.personal.remove('money/entries', id); setEdit(null); load(); }} />}
+      {emiEdit && <EmiDialog data-free item={emiEdit} onClose={() => setEmiEdit(null)} onSave={saveEmi} onDelete={async (id) => { await api.personal.remove('money/emis', id); setEmiEdit(null); load(); }} />}
+    </Board>
   );
 }
 
 function EntryDialog({ item, onClose, onSave, onDelete }) {
-  const [f, setF] = useState(item);
-  const cats = f.kind === 'income' ? INCOME_CATS : EXPENSE_CATS;
+  const baseCats = (k) => (k === 'income' ? INCOME_CATS : EXPENSE_CATS);
+  // A category that isn't in the list was typed under "Other"
+  const custom = item.category && !baseCats(item.kind).includes(item.category);
+  const [f, setF] = useState({ ...item, category: custom ? 'Other' : item.category });
+  const [other, setOther] = useState(custom ? item.category : '');
+  const cats = baseCats(f.kind);
+  const methods = f.method && !PAY_METHODS.includes(f.method) ? [f.method, ...PAY_METHODS] : PAY_METHODS;
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const isOther = f.category === 'Other';
+  const out = () => ({ ...f, category: isOther && other.trim() ? other.trim().slice(0, 40) : f.category });
   return (
     <Dialog open onClose={onClose}>
       <h2 style={{ marginTop: 0, fontSize: 21 }}>{f.id ? 'Edit' : 'Add'} {f.kind}</h2>
@@ -207,15 +232,22 @@ function EntryDialog({ item, onClose, onSave, onDelete }) {
       <Field label="Category">
         <div className="row wrap" style={{ gap: 6 }}>{cats.map((c) => <button key={c} type="button" className={cls('chip', f.category === c && 'on')} onClick={() => setF({ ...f, category: c })}>{c}</button>)}</div>
       </Field>
+      {isOther && (
+        <Field label={`Name this ${f.kind}`} hint="Saved as the category, so it shows by name in charts and downloads">
+          <input className="input" autoFocus value={other} maxLength={40} onChange={(e) => setOther(e.target.value)} placeholder={f.kind === 'income' ? 'e.g. Rent received' : 'e.g. Gym membership'} />
+        </Field>
+      )}
       <div className="fgrid">
-        <Field label="Paid by / into"><select className="select" value={f.method} onChange={set('method')}>{['UPI', 'Card', 'Cash', 'Bank', 'Wallet', ''].map((x) => <option key={x} value={x}>{x || '—'}</option>)}</select></Field>
+        <Field label={f.kind === 'income' ? 'Received into' : 'Paid by'}>
+          <select className="select" value={f.method || ''} onChange={set('method')}>{methods.map((x) => <option key={x} value={x}>{x}</option>)}<option value="">—</option></select>
+        </Field>
         <Field label="Note"><input className="input" value={f.note} onChange={set('note')} placeholder="Optional" /></Field>
       </div>
       <div className="row" style={{ marginTop: 16, gap: 8 }}>
         {f.id && <button className="btn danger" onClick={() => onDelete(f.id)}><Trash2 size={14} /> Delete</button>}
         <span className="grow" />
         <button className="btn" onClick={onClose}>Cancel</button>
-        <button className="btn primary" disabled={!(+f.amount > 0) || !f.date} onClick={() => onSave(f)}>Save</button>
+        <button className="btn primary" disabled={!(+f.amount > 0) || !f.date || (isOther && !other.trim())} onClick={() => onSave(out())}>Save</button>
       </div>
     </Dialog>
   );

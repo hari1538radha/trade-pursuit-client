@@ -1,10 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
-import { HandCoins, Plus, Upload, Trash2, Search, Lightbulb, Pencil } from 'lucide-react';
+import { HandCoins, Plus, Upload, Trash2, Search, Lightbulb, Pencil, Link2 } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Bar, Line, BarChart, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend, Cell } from 'recharts';
 import { useApp } from '../store/AppContext.jsx';
 import { Seg, Reveal, Dialog, Field } from '../components/ui.jsx';
 import { propAnalysis, fmtUsd, ymdOf } from '../lib/personal.js';
 import { SEED_PURCHASES, SEED_PAYOUTS, SEED_SOURCE } from '../lib/payoutSeed.js';
+import { kfmt } from '../lib/format.js';
+import Board from '../components/Board.jsx';
+
+/**
+ * Accounts from the Propfirm page, as purchase and payout rows.
+ * A fee you already typed here by hand (same date, firm and amount) is not counted twice.
+ */
+function syncedRows(accounts, buys, pays) {
+  const key = (d, f, v) => `${d}|${String(f).toLowerCase()}|${Math.round(+v * 100)}`;
+  const haveBuy = new Set(buys.map((b) => key(b.date, b.firm, b.fee)));
+  const havePay = new Set(pays.map((p) => key(p.date, p.firm, p.net)));
+  const sBuys = [], sPays = [];
+  for (const a of accounts) {
+    const date = a.purchasedAt || (a.createdAt || '').slice(0, 10);
+    const status = a.status === 'active' ? (a.kind === 'funded' ? 'funded' : 'active') : a.status === 'passed' ? (a.phase === 'Phase 1' ? 'step 1 passed' : 'passed') : a.status === 'failed' ? 'failed' : a.status;
+    if (a.paid > 0 && !haveBuy.has(key(date, a.firmName, a.paid))) {
+      sBuys.push({ id: `acc-${a.id}`, accountId: a.id, synced: true, date, firm: a.firmName || 'Other', program: `${kfmt(a.size)} ${a.program || ''} ${a.phase || ''}`.trim(), fee: a.paid, status, note: a.name });
+    }
+    for (const [i, p] of (a.payouts || []).entries()) {
+      if (havePay.has(key(p.date, a.firmName, p.amount))) continue;
+      sPays.push({ id: `acc-${a.id}-${i}`, accountId: a.id, synced: true, date: p.date, firm: a.firmName || 'Other', gross: p.amount, fee: 0, net: p.amount, account: a.name });
+    }
+  }
+  return { sBuys, sPays };
+}
 
 const AX = { tickLine: false, axisLine: false, tick: { fontSize: 12, fill: 'var(--text2)' } };
 const TT = { contentStyle: { background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: 10, fontSize: 13 } };
@@ -13,7 +38,8 @@ const STATUSES = ['', 'active', 'step 1 passed', 'passed', 'funded', 'breached',
 
 /** Admin only: what the funded-account journey has cost and paid */
 export default function Payouts() {
-  const { api, notify } = useApp();
+  const { api, notify, accounts, openModal } = useApp();
+  const [withAccounts, setWithAccounts] = useState(() => localStorage.getItem('tp.payoutsSync') !== '0');
   const [buys, setBuys] = useState(null);
   const [pays, setPays] = useState([]);
   const [tab, setTab] = useState('purchases');
@@ -24,8 +50,12 @@ export default function Payouts() {
     .then(([a, b]) => { setBuys(a.items); setPays(b.items); }).catch((e) => notify(e.message));
   useEffect(() => { load(); }, []); // eslint-disable-line
 
-  const a = useMemo(() => propAnalysis(buys || [], pays), [buys, pays]);
-  const firms = ['All', ...new Set([...(buys || []), ...pays].map((x) => x.firm))];
+  const synced = useMemo(() => syncedRows(withAccounts ? accounts : [], buys || [], pays), [accounts, buys, pays, withAccounts]);
+  const allBuys = useMemo(() => [...(buys || []), ...synced.sBuys].sort((x, y) => y.date.localeCompare(x.date)), [buys, synced]);
+  const allPays = useMemo(() => [...pays, ...synced.sPays].sort((x, y) => y.date.localeCompare(x.date)), [pays, synced]);
+  const a = useMemo(() => propAnalysis(allBuys, allPays), [allBuys, allPays]);
+  const firms = ['All', ...new Set([...allBuys, ...allPays].map((x) => x.firm))];
+  const openRow = (kind, x) => (x.synced ? openModal('account', { id: x.accountId }) : setEdit({ kind, item: x }));
 
   const importSeed = async () => {
     const r = await api.personal.importProps({ purchases: SEED_PURCHASES.map((p) => ({ ...p, inr: p.inr ?? null, src: SEED_SOURCE })), payouts: SEED_PAYOUTS.map((p) => ({ ...p, src: SEED_SOURCE })) });
@@ -41,15 +71,19 @@ export default function Payouts() {
   const remove = async (kind, id) => { await api.personal.remove(kind, id); setEdit(null); load(); };
 
   if (!buys) return <div className="page"><p className="muted">Loading…</p></div>;
-  const empty = !buys.length && !pays.length;
-  const rows = (tab === 'purchases' ? buys : pays).filter((x) => (firm === 'All' || x.firm === firm) && (!q || `${x.firm} ${x.note || ''} ${x.program || ''} ${x.status || ''} ${x.ref || ''}`.toLowerCase().includes(q.toLowerCase())));
+  const empty = !allBuys.length && !allPays.length;
+  const rows = (tab === 'purchases' ? allBuys : allPays).filter((x) => (firm === 'All' || x.firm === firm) && (!q || `${x.firm} ${x.note || ''} ${x.program || ''} ${x.status || ''} ${x.ref || ''}`.toLowerCase().includes(q.toLowerCase())));
 
   return (
-    <div className="page wide-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="payouts" className="page wide-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><HandCoins size={22} /> Payouts vs purchases</h1>
           <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>Everything spent on prop-firm accounts against what they've paid out. Only you (admin) can see this.</div>
+          <label className="row small" style={{ gap: 6, marginTop: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={withAccounts} onChange={(e) => { setWithAccounts(e.target.checked); localStorage.setItem('tp.payoutsSync', e.target.checked ? '1' : '0'); }} />
+            <Link2 size={14} /> Include accounts from the Propfirm page ({synced.sBuys.length} fees, {synced.sPays.length} payouts)
+          </label>
         </div>
         <div className="row wrap" style={{ gap: 8 }}>
           <button className="btn sm" onClick={importSeed} title="Adds the purchases and payouts from your Oct 2026 review; rows already here are skipped"><Upload size={14} /> Import Oct 2026 review</button>
@@ -106,8 +140,8 @@ export default function Payouts() {
             </div>
           </Reveal>
 
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,520px),1fr))' }}>
-            <Reveal className="card" style={{ marginTop: 16 }}>
+          <>
+            <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
               <h3 style={{ margin: 0, fontSize: 17 }}>Spent vs received by firm</h3>
               <div style={{ height: 300, marginTop: 12 }}>
                 <ResponsiveContainer>
@@ -123,7 +157,7 @@ export default function Payouts() {
                 </ResponsiveContainer>
               </div>
             </Reveal>
-            <Reveal className="card" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
+            <Reveal data-span={6} className="card" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '16px 18px 6px' }}><h3 style={{ margin: 0, fontSize: 17 }}>Firm scorecard</h3></div>
               <div style={{ overflowX: 'auto' }}>
                 <table className="tbl tr-tbl">
@@ -137,10 +171,10 @@ export default function Payouts() {
                 </table>
               </div>
             </Reveal>
-          </div>
+          </>
 
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,520px),1fr))' }}>
-            <Reveal className="card" style={{ marginTop: 16 }}>
+          <>
+            <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
               <h3 style={{ margin: 0, fontSize: 17 }}>Accounts bought per month</h3>
               <div style={{ height: 240, marginTop: 12 }}>
                 <ResponsiveContainer>
@@ -155,7 +189,7 @@ export default function Payouts() {
               </div>
               <p className="dim" style={{ fontSize: 12, margin: 0 }}>Red bars: 10+ accounts in a month.</p>
             </Reveal>
-            <Reveal className="card" style={{ marginTop: 16 }}>
+            <Reveal data-span={6} className="card" style={{ marginTop: 16 }}>
               <h3 style={{ margin: 0, fontSize: 17 }}>Break-even outlook (next 3 months)</h3>
               <div className="sub" style={{ fontSize: 13, marginTop: 4 }}>Payouts needed = current deficit + 3 × monthly purchases, at your recent average net payout ({fmtUsd(a.avgRecent)}).</div>
               {a.position >= 0 ? <p className="pos" style={{ fontWeight: 600 }}>You're already past break-even.</p> : (
@@ -166,11 +200,11 @@ export default function Payouts() {
               )}
               <p className="dim" style={{ fontSize: 12, marginBottom: 0 }}>A scenario, not a forecast: assumes no new breaches and the same payout size.</p>
             </Reveal>
-          </div>
+          </>
 
           <Reveal className="card" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
             <div className="row between wrap" style={{ padding: '16px 18px 8px', gap: 10 }}>
-              <Seg options={[{ value: 'purchases', label: `Purchases (${buys.length})` }, { value: 'payouts', label: `Payouts (${pays.length})` }]} value={tab} onChange={setTab} />
+              <Seg options={[{ value: 'purchases', label: `Purchases (${allBuys.length})` }, { value: 'payouts', label: `Payouts (${allPays.length})` }]} value={tab} onChange={setTab} />
               <div className="row wrap" style={{ gap: 8 }}>
                 <select className="select" style={{ width: 150, padding: '8px 12px' }} value={firm} onChange={(e) => setFirm(e.target.value)}>{firms.map((f) => <option key={f}>{f}</option>)}</select>
                 <div className="row" style={{ background: 'var(--panel2)', borderRadius: 10, padding: '0 10px', width: 200 }}><Search size={14} className="muted" /><input className="input" style={{ background: 'none', padding: 8 }} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
@@ -182,8 +216,8 @@ export default function Payouts() {
                   <>
                     <thead><tr><th>Date</th><th>Firm</th><th>Program</th><th className="r">Fee</th><th className="r">Debited ₹</th><th>Status</th><th>Note</th><th /></tr></thead>
                     <tbody>{rows.map((p) => (
-                      <tr key={p.id} className="click" onClick={() => setEdit({ kind: 'props/purchases', item: p })}>
-                        <td className="mono">{p.date}</td><td><b>{p.firm}</b></td><td className="muted">{p.program || '—'}</td><td className="r mono">{fmtUsd(p.fee)}</td><td className="r mono">{p.inr ? `₹${p.inr.toLocaleString('en-IN')}` : '—'}</td>
+                      <tr key={p.id} className="click" onClick={() => openRow('props/purchases', p)}>
+                        <td className="mono">{p.date}</td><td><b>{p.firm}</b>{p.synced && <span className="tag sync" title="From the Propfirm page">synced</span>}</td><td className="muted">{p.program || '—'}</td><td className="r mono">{fmtUsd(p.fee)}</td><td className="r mono">{p.inr ? `₹${p.inr.toLocaleString('en-IN')}` : '—'}</td>
                         <td>{p.status ? <span className="tag" style={{ color: /breach|fail/.test(p.status) ? RED : /fund|pass/.test(p.status) ? GREEN : undefined }}>{p.status}</span> : '—'}</td>
                         <td className="muted" style={{ whiteSpace: 'normal', minWidth: 200 }}>{p.note || ''}</td><td><Pencil size={13} className="muted" /></td>
                       </tr>
@@ -193,8 +227,8 @@ export default function Payouts() {
                   <>
                     <thead><tr><th>Date</th><th>Firm</th><th className="r">Gross</th><th className="r">Fee</th><th className="r">Net</th><th>Account</th><th>Ref</th><th>Note</th><th /></tr></thead>
                     <tbody>{rows.map((p) => (
-                      <tr key={p.id} className="click" onClick={() => setEdit({ kind: 'props/payouts', item: p })}>
-                        <td className="mono">{p.date}</td><td><b>{p.firm}</b></td><td className="r mono">{fmtUsd(p.gross)}</td><td className="r mono">{fmtUsd(p.fee)}</td><td className="r mono pos" style={{ fontWeight: 600 }}>{fmtUsd(p.net)}</td><td className="muted">{p.account || '—'}</td><td className="mono muted">{p.ref || '—'}</td><td className="muted" style={{ whiteSpace: 'normal', minWidth: 200 }}>{p.note || ''}</td><td><Pencil size={13} className="muted" /></td>
+                      <tr key={p.id} className="click" onClick={() => openRow('props/payouts', p)}>
+                        <td className="mono">{p.date}</td><td><b>{p.firm}</b>{p.synced && <span className="tag sync" title="From the Propfirm page">synced</span>}</td><td className="r mono">{fmtUsd(p.gross)}</td><td className="r mono">{fmtUsd(p.fee)}</td><td className="r mono pos" style={{ fontWeight: 600 }}>{fmtUsd(p.net)}</td><td className="muted">{p.account || '—'}</td><td className="mono muted">{p.ref || '—'}</td><td className="muted" style={{ whiteSpace: 'normal', minWidth: 200 }}>{p.note || ''}</td><td><Pencil size={13} className="muted" /></td>
                       </tr>
                     ))}</tbody>
                   </>
@@ -204,8 +238,8 @@ export default function Payouts() {
           </Reveal>
         </>
       )}
-      <EditDialog edit={edit} onClose={() => setEdit(null)} onSave={save} onDelete={remove} firms={firms.filter((f) => f !== 'All')} />
-    </div>
+      <EditDialog data-free edit={edit} onClose={() => setEdit(null)} onSave={save} onDelete={remove} firms={firms.filter((f) => f !== 'All')} />
+    </Board>
   );
 }
 

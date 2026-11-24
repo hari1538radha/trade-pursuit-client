@@ -5,6 +5,7 @@ import { Seg, Reveal } from '../components/ui.jsx';
 import { useApp } from '../store/AppContext.jsx';
 import { emotionCheck } from '../lib/coach.js';
 import { cls } from '../lib/format.js';
+import Board from '../components/Board.jsx';
 
 const PATTERNS = {
   'Box 4-4-4-4': { steps: [['Breathe in', 4, 1.25], ['Hold', 4, 1.25], ['Breathe out', 4, 0.8], ['Hold', 4, 0.8]], note: 'Used to steady nerves under pressure. Equal counts, slow and even.' },
@@ -76,8 +77,8 @@ export default function Calm() {
   const startCool = (min) => { const until = Date.now() + min * 60000; setCool(until); try { localStorage.setItem('tp.cooldown', String(until)); } catch { /* */ } };
 
   return (
-    <div className="page calm-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="calm" className="page calm-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><Leaf size={22} style={{ color: 'var(--green)' }} /> Mind Calm</h1><div className="muted">Reset before the next decision. Two minutes is enough.</div></div>
         <button className={cls('btn', sound && 'primary')} onClick={toggleSound}>{sound ? <Volume2 size={16} /> : <VolumeX size={16} />} Calm sound {sound ? 'on' : 'off'}</button>
       </div>
@@ -89,8 +90,8 @@ export default function Calm() {
         </Reveal>
       )}
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,440px),1fr))', marginTop: 20 }}>
-        <div className="card" style={{ textAlign: 'center', padding: 28 }}>
+      <>
+        <div data-span={6} className="card" style={{ textAlign: 'center', padding: 28 }}>
           <Seg options={Object.keys(PATTERNS)} value={pattern} onChange={setPattern} />
           <div className="breath-wrap">
             <motion.div className="breath-ring" animate={{ scale: running ? scale : 1 }} transition={{ duration: running ? steps[step][1] : 0.6, ease: 'easeInOut' }} />
@@ -107,7 +108,7 @@ export default function Calm() {
           <div className="muted" style={{ marginTop: 12 }}>{cycles} round{cycles === 1 ? '' : 's'} done · aim for 5</div>
         </div>
 
-        <div className="col" style={{ gap: 14 }}>
+        <div data-span={6} className="col" style={{ gap: 14 }}>
           <div className="card">
             <h3>Tilt cooldown</h3>
             <div className="sub" style={{ marginBottom: 12 }}>Lock yourself out mentally. No new trades until the timer ends.</div>
@@ -125,22 +126,22 @@ export default function Calm() {
             {reset.length === RESET.length && <p className="pos" style={{ marginBottom: 0 }}>Reset complete. Trade only what's in your plan.</p>}
           </div>
         </div>
-      </div>
+      </>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,440px),1fr))', marginTop: 14 }}>
-        <div className="card">
+      <>
+        <div data-span={6} className="card">
           <h3>5-4-3-2-1 grounding</h3>
           <div className="sub" style={{ marginBottom: 10 }}>Pulls your attention out of the P&amp;L and back into the room.</div>
           <div className="col" style={{ gap: 8 }}>{GROUND.map((g) => <Tick key={g} on={ground.includes(g)} onClick={() => setGround((x) => (x.includes(g) ? x.filter((y) => y !== g) : [...x, g]))}>{g}</Tick>)}</div>
         </div>
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 200 }}>
+        <div data-span={6} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 200 }}>
           <div className="eyebrow">Remember</div>
           <AnimatePresence mode="wait">
             <motion.p key={line} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} style={{ fontSize: 24, lineHeight: 1.35, letterSpacing: '-.01em', margin: '12px 0 0' }}>{LINES[line]}</motion.p>
           </AnimatePresence>
         </div>
-      </div>
-    </div>
+      </>
+    </Board>
   );
 }
 

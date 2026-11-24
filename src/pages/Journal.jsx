@@ -9,6 +9,7 @@ import { summary, byDay, tradeScore } from '../lib/stats.js';
 import { longDate, weekStart, dayMonth, shortDate } from '../lib/dates.js';
 import { cls, rr } from '../lib/format.js';
 import { toCSV, download } from '../lib/csv.js';
+import Board from '../components/Board.jsx';
 
 export default function Journal() {
   const { trades, accounts, openModal, breakEven, hidePnl, toggleHide } = useApp();
@@ -37,8 +38,8 @@ export default function Journal() {
   const activeFilters = Object.values(f).filter(Boolean).length + (dateParam ? 1 : 0);
 
   return (
-    <div className="page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="journal" className="page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Trade Journal</h1><div className="muted">{trades.filter((t) => !t.noTrade).length} trades logged</div></div>
         <Seg options={['Trades', 'Daily', 'Weekly']} value={view} onChange={setView} />
         <div className="row"><button className="btn" onClick={() => openModal('quick')}><Zap size={16} /> Quick Log</button><button className="btn primary" onClick={() => openModal('log')}><Plus size={16} /> Log Trade</button></div>
@@ -102,7 +103,7 @@ export default function Journal() {
       ) : (
         <Periods trades={filtered} weekly={view === 'Weekly'} onPick={(d) => { setParams({ date: d }); setView('Trades'); }} />
       )}
-    </div>
+    </Board>
   );
 }
 

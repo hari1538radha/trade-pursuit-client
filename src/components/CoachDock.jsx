@@ -37,7 +37,7 @@ export default function CoachDock() {
   const week = useMemo(() => weekWorst(trades, { be: breakEven, donts: settings.donts || [] }), [trades, breakEven, settings.donts]);
   const tone = TONE[check.state];
 
-  // The red ticker under the top bar opens this card on click
+  // The red ticker at the bottom of the screen opens this card on click
   useEffect(() => { const h = () => setBrief(true); window.addEventListener('tp-brief', h); return () => window.removeEventListener('tp-brief', h); }, []);
 
   // Daily "before you trade" briefing (once per day)
@@ -155,7 +155,7 @@ export default function CoachDock() {
               <div className="eyebrow" style={{ color: 'var(--red)' }}>Before you trade today</div>
               <h2 style={{ margin: '6px 0 4px', fontSize: 28, letterSpacing: '-.02em' }}>Don't repeat last week.</h2>
               <p className="muted" style={{ marginTop: 0 }}>
-                {week.fromAllTime ? 'No trades logged last week, so these are the habits that cost you most overall.' : `The worst things you did from ${week.from} to ${week.to} (${week.count} trades, ${week.pnl < 0 ? '-' : '+'}$${Math.abs(Math.round(week.pnl)).toLocaleString('en-US')}). They stay running in the red strip under the top bar.`}
+                {week.fromAllTime ? 'No trades logged last week, so these are the habits that cost you most overall.' : `The worst things you did from ${week.from} to ${week.to} (${week.count} trades, ${week.pnl < 0 ? '-' : '+'}$${Math.abs(Math.round(week.pnl)).toLocaleString('en-US')}). They stay running in the red strip at the bottom of the screen.`}
               </p>
               <ol className="avoid big">
                 {week.items.slice(0, 6).map((a, i) => <li key={i}><b>{a.avoid}</b>{!a.mine && <span>{a.what}</span>}</li>)}

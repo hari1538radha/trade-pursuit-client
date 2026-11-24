@@ -7,6 +7,7 @@ import { Seg, Reveal } from '../components/ui.jsx';
 import { summary, cumulative, groupBy, real } from '../lib/stats.js';
 import { weekWorst } from '../lib/coach.js';
 import { cls } from '../lib/format.js';
+import Board from '../components/Board.jsx';
 
 const money = (n, d = 0) => (n == null || !Number.isFinite(n) ? '—' : `${n < 0 ? '-' : n > 0 ? '+' : ''}$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d })}`);
 const pct = (n) => (Number.isFinite(n) ? `${n.toFixed(0)}%` : '—');
@@ -33,8 +34,8 @@ function TraderList() {
     .sort((a, b) => (b.s?.last || '').localeCompare(a.s?.last || ''));
   const total = rows.reduce((a, u) => ({ trades: a.trades + (u.s?.trades || 0), pnl: a.pnl + (u.s?.pnl || 0) }), { trades: 0, pnl: 0 });
   return (
-    <div className="page wide-page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="traders" className="page wide-page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><Users size={22} /> Traders</h1>
           <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>Every trader on the site and their journal. Admin only, read-only.</div>
@@ -78,7 +79,7 @@ function TraderList() {
           </table>
         </div>
       </Reveal>
-    </div>
+    </Board>
   );
 }
 

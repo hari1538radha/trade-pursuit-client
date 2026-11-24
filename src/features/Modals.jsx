@@ -7,6 +7,7 @@ import Settings from './Settings.jsx';
 import AddAccount from './AddAccount.jsx';
 import AccountDialog from './AccountDialog.jsx';
 import ReportDialog from './ReportDialog.jsx';
+import FirmEditor from './FirmEditor.jsx';
 
 export default function Modals() {
   const { modal, closeModal } = useApp();
@@ -19,6 +20,7 @@ export default function Modals() {
       <AddAccount open={t === 'addAccount'} onClose={closeModal} firmId={p.firmId} />
       <AccountDialog open={t === 'account'} onClose={closeModal} id={p.id} />
       <ReportDialog open={t === 'report'} onClose={closeModal} kind={p.kind} />
+      <FirmEditor open={t === 'firm'} onClose={closeModal} firmId={p.firmId} />
       <AskDialog />
     </>
   );

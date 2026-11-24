@@ -8,7 +8,8 @@ import { ThemeToggle } from '../components/Layout.jsx';
 export default function Auth() {
   const { signIn, signInToken, api } = useApp();
   const [mode, setMode] = useState('login');
-  const [f, setF] = useState({ username: '', password: '', displayName: '' });
+  // Username is remembered from the last sign-in; passwords are never stored (the browser's password manager can)
+  const [f, setF] = useState(() => ({ username: (() => { try { return localStorage.getItem('tp.lastUser') || ''; } catch { return ''; } })(), password: '', displayName: '' }));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -35,7 +36,7 @@ export default function Auth() {
           <h2 style={{ fontSize: 34, margin: '0 0 6px', letterSpacing: '-.03em' }}>{mode === 'login' ? 'Welcome back' : 'Start journaling'}</h2>
           <p className="muted" style={{ marginTop: 0 }}>{mode === 'login' ? 'Username and password. That’s it.' : 'Pick a username your friends will recognise. Free, no card. The site’s admins can see your journal and trades.'}</p>
           <div className="col" style={{ gap: 14, marginTop: 14 }}>
-            <Field label="Username"><input className="input" autoFocus autoComplete="username" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} placeholder="hari_trades" /></Field>
+            <Field label="Username"><input className="input" autoFocus={!f.username} autoComplete="username" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} placeholder="hari_trades" /></Field>
             <AnimatePresence>
               {mode === 'register' && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>

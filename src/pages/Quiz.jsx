@@ -6,6 +6,7 @@ import { Reveal } from '../components/ui.jsx';
 import { TOPICS, QUESTIONS, pick } from '../lib/quizBank.js';
 import { cls } from '../lib/format.js';
 import { relTime } from '../lib/dates.js';
+import Board from '../components/Board.jsx';
 
 export default function Quiz() {
   const { api, notify } = useApp();
@@ -39,8 +40,8 @@ export default function Quiz() {
   if (run) return <Runner run={run} setRun={setRun} onFinish={finish} onExit={() => setRun(null)} />;
 
   return (
-    <div className="page">
-      <div className="row between wrap" style={{ gap: 12 }}>
+    <Board id="quiz" className="page">
+      <div data-fixed className="page-head row between wrap" style={{ gap: 12 }}>
         <div><h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }} className="row"><GraduationCap size={24} /> Trading Quiz</h1><div className="muted">{QUESTIONS.length} questions on risk, psychology, prop rules, price action, options and Indian markets.</div></div>
         <button className="btn primary" onClick={() => start({ n: 10 })}><ArrowRight size={16} /> Quick 10</button>
       </div>
@@ -88,7 +89,7 @@ export default function Quiz() {
           </div>
         </>
       )}
-    </div>
+    </Board>
   );
 }
 

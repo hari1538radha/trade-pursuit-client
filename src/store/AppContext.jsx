@@ -14,10 +14,11 @@ export function AppProvider({ children }) {
   const [modal, setModal] = useState(null); // {type, props}
   const [ask, setAsk] = useState(null); // {msg, type, resolve}
   const [hidePnl, setHidePnl] = useState(() => localStorage.getItem('edgelog.hide') === '1');
-  const [theme, setThemeState] = useState(() => localStorage.getItem('edgelog.theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+  // Light mode by default (and after every sign-in); the sun/moon button still switches for the session
+  const [theme, setThemeState] = useState(() => localStorage.getItem('edgelog.theme') || 'light');
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#eef1f6' : '#07080d');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f3f5fa' : '#0b0d14');
   }, [theme]);
   const setTheme = (t) => { localStorage.setItem('edgelog.theme', t); setThemeState(t); };
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
@@ -32,23 +33,38 @@ export function AppProvider({ children }) {
     setAccounts(a.accounts);
   }, []);
 
+  // Stay signed in: the session token is kept in this browser until you sign out.
+  // Only a real "not signed in" answer (401) clears it; a sleeping or unreachable server is retried.
+  const [waking, setWaking] = useState(false);
   useEffect(() => {
+    let stop = false;
     (async () => {
       if (!getToken()) return setBooting(false);
-      try {
-        const { user } = await api.auth.me();
-        setUser(user);
-        await loadData();
-      } catch {
-        setToken(null);
+      for (let attempt = 0; attempt < 12 && !stop; attempt++) {
+        try {
+          const { user } = await api.auth.me();
+          setTheme('light'); // every visit opens in light mode
+          setUser(user);
+          try { localStorage.setItem('tp.lastUser', user.username); } catch { /* */ }
+          await loadData();
+          break;
+        } catch (e) {
+          if (e.status === 401 || e.status === 403) { setToken(null); break; }
+          setWaking(true); // server asleep (Render free plan) or offline: wait and try again
+          await new Promise((r) => setTimeout(r, Math.min(2000 + attempt * 1500, 8000)));
+        }
       }
+      setWaking(false);
       setBooting(false);
     })();
+    return () => { stop = true; };
   }, [loadData]);
 
   const signIn = async (kind, creds) => {
     const { token, user } = await api.auth[kind](creds);
     setToken(token);
+    try { localStorage.setItem('tp.lastUser', user.username); } catch { /* */ }
+    setTheme('light');
     setUser(user);
     await loadData();
   };
@@ -60,7 +76,7 @@ export function AppProvider({ children }) {
   };
   const signOut = () => { setToken(null); setUser(null); setAllTrades([]); setAccounts([]); };
 
-  const updateUser = async (patch) => { const { user } = await api.auth.update(patch); setUser(user); return user; };
+  const updateUser = async (patch) => { const { user } = await api.auth.update(patch); const fresh = { ...user, settings: { ...(user.settings || {}) } }; setUser(fresh); return fresh; };
 
   const saveTrade = async (data, id) => {
     if (id) {
@@ -82,7 +98,7 @@ export function AppProvider({ children }) {
   const trades = useMemo(() => allTrades.filter((t) => (t.mode || 'live') === mode), [allTrades, mode]);
 
   const value = {
-    api, user, booting, theme, setTheme, toggleTheme, trades, allTrades, accounts, mode, setMode, hidePnl, toggleHide,
+    api, user, booting, waking, theme, setTheme, toggleTheme, trades, allTrades, accounts, mode, setMode, hidePnl, toggleHide,
     signIn, signInToken, signOut, updateUser, loadData, saveTrade, deleteTrade, importTrades,
     addAccounts, updateAccount, removeAccount, notify, toast, modal,
     openModal: (type, props = {}) => setModal({ type, props }), closeModal: () => setModal(null),
