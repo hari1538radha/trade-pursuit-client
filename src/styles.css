@@ -663,3 +663,17 @@ table.oc.oc-big th{font-size:12px;letter-spacing:.04em}
   .shell:not(.force-desktop) .page .card.row,.trade-card>.row,.trade-card .row.between{flex-wrap:wrap}
   .shell:not(.force-desktop) .page .stat .val{font-size:clamp(16px,5.2vw,22px)!important}
 }
+
+/* Daily levels */
+.lvl-list{display:flex;flex-direction:column;gap:2px}
+.lvl-row{display:grid;grid-template-columns:1fr auto 76px;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;font-size:14px}
+.lvl-row>span:first-child{display:flex;align-items:center;gap:8px}
+.lvl-row>span:last-child{text-align:right}
+.lvl-row i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.lvl-row.now{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.lvl-row b{font-variant-numeric:tabular-nums}
+.gauge{position:relative;height:10px;border-radius:99px;background:var(--panel3);margin:14px 0 4px}
+.gauge>i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;transition:width .4s}
+.gauge>b{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--text);border-radius:2px}
+.state-row{padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.levels-settings .field{margin:0}

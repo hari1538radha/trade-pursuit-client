@@ -378,6 +378,33 @@ export const demoApi = {
       }
       return wait({ symbol, name: symbol === 'XAGUSD' ? 'Silver' : 'Gold', interval, candles, price: p, spot: p, futures: p, basis: 0, adr: vol * 7, source: 'Sample data', updatedAt: new Date().toISOString(), demo: true });
     },
+    // Sample hourly futures bars for the Daily levels page (clearly labelled as sample data).
+    // Sessions run 23:00–22:00 UTC, Monday–Friday. Outside trading hours the sample stops at
+    // the last weekday 09:00 UTC so the preview shows a finished Asian session.
+    async bars(symbol) {
+      const cfg = { XAUUSD: [4400, 0.0018, 'Gold', 7, 21.4], XAGUSD: [50.5, 0.0032, 'Silver', 11, 0.31], NAS100: [21500, 0.0019, 'Nasdaq 100', 5, 0] }[symbol];
+      if (!cfg) throw fail(400, 'symbol must be one of XAUUSD, XAGUSD, NAS100');
+      const [base, vol, name, s0, basis] = cfg;
+      const H = 3.6e6;
+      let seed = s0; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
+      const trades = (t) => { const td = new Date(t + 3 * H).getUTCDay(); return new Date(t).getUTCHours() !== 22 && td !== 0 && td !== 6; };
+      let end = Math.floor(Date.now() / H) * H, asOf = Date.now();
+      if (!trades(end)) { while (!(trades(end) && new Date(end).getUTCHours() === 9)) end -= H; asOf = end + 20 * 60e3; }
+      const raw = []; let p = base, drift = 0;
+      for (let t = end - 182 * 24 * H; t <= end; t += H) {
+        if (!trades(t)) continue;
+        if (rnd() < 0.008) drift = (rnd() - 0.5) * vol * 0.3;           // trend phases come and go
+        const h = new Date(t).getUTCHours();
+        const v = vol * (h >= 23 || h < 6 ? (rnd() < 0.1 ? 1.6 : 0.8) : h >= 12 && h < 17 ? 1.3 : 1); // Asia is usually quiet, sometimes not
+        const o = p, c = o * (1 + drift + gauss() * v);
+        raw.push([t, o, Math.max(o, c) * (1 + rnd() * v * 0.6), Math.min(o, c) * (1 - rnd() * v * 0.6), c]); p = c;
+      }
+      const k = base / p, r3 = (x) => Math.round(x * k * 1000) / 1000;   // end near today's typical price
+      const bars = raw.map(([t, ...x]) => [t, ...x.map(r3)]);
+      const last = bars.at(-1)[4];
+      return wait({ symbol, name, bars, futures: last, spot: last - basis, basis, source: 'Sample data', updatedAt: new Date(asOf).toISOString(), asOf, demo: true });
+    },
   },
   notes: {
     async list() { const uid = me().id; return wait({ notes: db.notes.filter((n) => n.user === uid).sort((a, b) => (b.pinned - a.pinned) || b.updatedAt.localeCompare(a.updatedAt)) }); },

@@ -13,6 +13,7 @@ import Strategy from './pages/Strategy.jsx';
 import Options from './pages/Options.jsx';
 import Stocks from './pages/Stocks.jsx';
 import Goldbach from './pages/Goldbach.jsx';
+import Levels from './pages/Levels.jsx';
 import Notes from './pages/Notes.jsx';
 import Quiz from './pages/Quiz.jsx';
 import Calm from './pages/Calm.jsx';
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="options" element={admin(<Options />)} />
           <Route path="stocks" element={admin(<Stocks />)} />
           <Route path="goldbach" element={admin(<Goldbach />)} />
+          <Route path="levels" element={admin(<Levels />)} />
           <Route path="notes" element={admin(<Notes />)} />
           <Route path="quiz" element={admin(<Quiz />)} />
           <Route path="calm" element={admin(<Calm />)} />
