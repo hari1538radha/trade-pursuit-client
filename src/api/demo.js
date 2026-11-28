@@ -1,6 +1,7 @@
 // Browser-only backend used for the hosted preview (VITE_DEMO=true).
 // Same shape as the HTTP API, persisted in localStorage.
 import firmsCatalog from '@shared/firms.json';
+import { sampleMacro } from '../lib/macroSample.js';
 import { setToken, getToken } from './http.js';
 import { fetchNewsDirect } from './news.js';
 import { ymd, addDays, parseYmd } from '../lib/dates.js';
@@ -378,6 +379,8 @@ export const demoApi = {
       }
       return wait({ symbol, name: symbol === 'XAGUSD' ? 'Silver' : 'Gold', interval, candles, price: p, spot: p, futures: p, basis: 0, adr: vol * 7, source: 'Sample data', updatedAt: new Date().toISOString(), demo: true });
     },
+    // Sample macro bundle for the Macro page (clearly labelled as sample data)
+    async macro() { return wait(sampleMacro()); },
     // Sample hourly futures bars for the Daily levels page (clearly labelled as sample data).
     // Sessions run 23:00–22:00 UTC, Monday–Friday. Outside trading hours the sample stops at
     // the last weekday 09:00 UTC so the preview shows a finished Asian session.

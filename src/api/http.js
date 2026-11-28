@@ -91,6 +91,7 @@ export const httpApi = {
     range: (symbols) => req('GET', `/markets/range${qs({ symbols: symbols.join(',') })}`),
     goldbach: (symbol, interval) => req('GET', `/markets/goldbach${qs({ symbol, interval })}`),
     bars: (symbol) => req('GET', `/markets/bars${qs({ symbol })}`),
+    macro: () => req('GET', '/markets/macro'),
   },
   // Admin's own tracking: money, prop-firm payouts, lifestyle
   personal: {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Sigma, Users, HandCoins, Wallet, HeartPulse, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal, LayoutDashboard, Check, RotateCcw } from 'lucide-react';
+import { LayoutGrid, BookOpen, Target, BarChart3, Building2, NotebookPen, GraduationCap, Leaf, FileDown, Activity, LineChart, Newspaper, Gem, Sigma, Globe2, Users, HandCoins, Wallet, HeartPulse, Sun, Moon, ChevronsLeft, ChevronsRight, ChevronDown, Settings, Plus, Pencil, ArrowUpRight, ArrowDownRight, ShieldAlert, LogOut, SlidersHorizontal, LayoutDashboard, Check, RotateCcw } from 'lucide-react';
 import { useApp } from '../store/AppContext.jsx';
 import { Logo, Seg, Toggle, Money, Dialog, Field, Toast, SymbolIcon, ease } from './ui.jsx';
 import { cls, initials, money, usd, kfmt } from '../lib/format.js';
@@ -26,6 +26,7 @@ const NAV = [
   { to: '/stocks', label: 'Stocks', icon: LineChart, admin: true },
   { to: '/goldbach', label: 'Goldbach', icon: Gem, admin: true },
   { to: '/levels', label: 'Daily levels', icon: Sigma, admin: true },
+  { to: '/macro', label: 'Macro', icon: Globe2, admin: true },
   { to: '/notes', label: 'Notes', icon: NotebookPen, admin: true },
   { to: '/quiz', label: 'Quiz', icon: GraduationCap, admin: true },
   { to: '/payouts', label: 'Payouts', icon: HandCoins, admin: true },
@@ -53,7 +54,7 @@ const useMedia = (q) => {
   useEffect(() => { const mq = window.matchMedia(q); const f = () => setM(mq.matches); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, [q]);
   return m;
 };
-const ADMIN_PATHS = /^\/(options|stocks|goldbach|levels|notes|quiz|calm|payouts|money|lifestyle|traders)(\/|$)/;
+const ADMIN_PATHS = /^\/(options|stocks|goldbach|levels|macro|notes|quiz|calm|payouts|money|lifestyle|traders)(\/|$)/;
 export const boardIdFor = (path) => (path.split('/')[1] || 'dashboard');
 
 export default function Layout() {
@@ -70,7 +71,7 @@ export default function Layout() {
   const [railOpen, setRail] = useState(true);
   const mainRef = useRef(null);
   // Data-heavy pages use the whole screen: no desk on the left, no rail on the right
-  const wide = /^\/(options|stocks|goldbach|levels|traders|payouts|money|lifestyle)(\/|$)/.test(loc.pathname);
+  const wide = /^\/(options|stocks|goldbach|levels|macro|traders|payouts|money|lifestyle)(\/|$)/.test(loc.pathname);
   useEffect(() => { mainRef.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
 
   // Global shortcuts: Q = quick log, N = log trade
